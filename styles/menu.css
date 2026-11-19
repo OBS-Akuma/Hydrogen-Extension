@@ -1,0 +1,900 @@
+
+/* ============================================================
+   Hydrogen Style Menu — all menu chrome lives here.
+   User-injected CSS does NOT go through this file; it goes
+   through lib/injector.js into a separate <style> tag.
+   ============================================================ */
+
+.sm-root {
+  --sm-bg0: #0a0a0a;
+  --sm-bg-tint: rgba(10,10,10,0.35);
+  --sm-line: #1f1f1f;
+  --sm-line-strong: #2c2c2c;
+  --sm-field: #0b0b0b;
+  --sm-text: #f2f2f2;
+  --sm-text-muted: #858585;
+  --sm-blue: #2bb0ff;
+  font-family: "Rubik","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+
+.sm-root *, .sm-root *::before, .sm-root *::after {
+  box-sizing: border-box;
+}
+
+.sm-root ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.sm-root ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sm-root ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}
+
+.sm-root ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+  background-clip: padding-box;
+}
+
+/* ---------- inline SVG icons ---------- */
+
+.sm-svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+  display: block;
+  pointer-events: none;
+}
+
+/* ---------- overlay + window ---------- */
+
+.sm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: none;
+  pointer-events: none;
+}
+
+.sm-overlay.sm-visible {
+  display: block;
+}
+
+.sm-window {
+  position: fixed;
+  width: 1000px;
+  height: 620px;
+  max-width: 96vw;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--sm-bg-tint), var(--sm-bg-tint)),
+    var(--sm-bg0);
+  color: var(--sm-text);
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(0,0,0,0.7);
+  transform: scale(0.45);
+  opacity: 0;
+  transition: transform 0.27s cubic-bezier(.2,.9,.25,1), opacity 0.2s ease;
+  pointer-events: auto;
+  will-change: transform, opacity, left, top;
+}
+
+.sm-window.sm-open {
+  transform: none;
+  opacity: 1;
+}
+
+.sm-window.sm-dragging {
+  transition: none;
+  transform: none;
+  opacity: 1;
+}
+
+/* ---------- top bar ---------- */
+
+.sm-topbar {
+  height: 54px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--sm-line);
+  position: relative;
+  z-index: 30;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.sm-topbar.sm-dragging {
+  cursor: grabbing;
+}
+
+.sm-topbar-left, .sm-topbar-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sm-topbar-right {
+  justify-content: flex-end;
+}
+
+.sm-title {
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.sm-icon-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #cfcfcf;
+  font-size: 1.15rem;
+  line-height: 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.sm-icon-btn:hover {
+  background: #1c1c1c;
+  color: #fff;
+}
+
+.sm-icon-btn:disabled {
+  color: #4a4a4a;
+  cursor: default;
+  background: transparent;
+}
+
+.sm-icon-btn.sm-close:hover {
+  background: rgba(255,82,82,0.16);
+  color: #ff5b5b;
+}
+
+.sm-icon-btn .sm-svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- search ---------- */
+
+.sm-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sm-search-field {
+  width: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-right: 0;
+  transition: width 0.28s cubic-bezier(.3,.9,.3,1), opacity 0.2s ease, margin 0.28s ease;
+}
+
+.sm-search.sm-open .sm-search-field {
+  width: 230px;
+  opacity: 1;
+  margin-right: 6px;
+}
+
+.sm-search-input {
+  width: 230px;
+  height: 34px;
+  padding: 0 12px;
+  background: #161616;
+  color: var(--sm-text);
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sm-search-input::placeholder {
+  color: #707070;
+}
+
+.sm-search-input:focus {
+  border-color: #444;
+  background: #1a1a1a;
+}
+
+.sm-search.sm-open .sm-search-toggle {
+  background: #1c1c1c;
+  color: #fff;
+}
+
+.sm-search-results {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  z-index: 60;
+  display: none;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+  background: #161616;
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.65);
+}
+
+.sm-search-results.sm-open {
+  display: block;
+}
+
+.sm-search-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: var(--sm-text);
+}
+
+.sm-search-item:hover,
+.sm-search-item.sm-active {
+  background: #222;
+}
+
+.sm-search-item .sm-search-tab {
+  font-size: 0.74rem;
+  color: var(--sm-text-muted);
+}
+
+.sm-search-empty {
+  padding: 10px;
+  font-size: 0.84rem;
+  color: var(--sm-text-muted);
+  text-align: center;
+}
+
+/* ---------- main layout + sidebar ---------- */
+
+.sm-main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sm-sidebar {
+  order: -1;
+  width: 220px;
+  flex-shrink: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 14px;
+  border-right: 1px solid var(--sm-line);
+  overflow-y: auto;
+}
+
+.sm-nav-title {
+  padding: 12px 8px 6px;
+  font-size: 0.82rem;
+  color: #8b8b8b;
+}
+
+.sm-tab-btn {
+  width: 100%;
+  margin: 0 0 2px;
+  padding: 10px 14px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 400;
+  color: #f2f2f2;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.sm-tab-btn:hover {
+  background: #151515;
+}
+
+.sm-tab-btn.sm-active {
+  background: #1c1c1c;
+}
+
+.sm-sidebar-version {
+  margin-top: auto;
+  padding: 10px 8px 0;
+  font-size: 0.78rem;
+  color: #7d7d7d;
+}
+
+.sm-content {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.sm-tab-content {
+  display: none;
+}
+
+.sm-tab-content.sm-active {
+  display: block;
+  animation: sm-fade 0.18s ease;
+}
+
+@keyframes sm-fade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- cards ---------- */
+
+.sm-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(21,21,21,0.6);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.sm-card:last-child {
+  margin-bottom: 0;
+}
+
+.sm-card-head {
+  margin-bottom: 12px;
+}
+
+.sm-card-title {
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.sm-card-desc {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--sm-text-muted);
+}
+
+/* ---------- raw CSS textarea ---------- */
+
+.sm-textarea {
+  width: 100%;
+  min-height: 320px;
+  padding: 12px 14px;
+  background: var(--sm-field);
+  color: var(--sm-text);
+  border: 1px solid var(--sm-line);
+  border-radius: 6px;
+  font-family: 'JetBrains Mono','Fira Code','Consolas',monospace;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  resize: vertical;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+
+.sm-textarea::placeholder {
+  color: #626262;
+}
+
+.sm-textarea:hover {
+  border-color: var(--sm-line-strong);
+}
+
+.sm-textarea:focus {
+  border-color: rgba(43,176,255,0.38);
+}
+
+/* ---------- CSS URL input ---------- */
+
+.sm-css-url-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 13px;
+  background: var(--sm-field);
+  color: var(--sm-text);
+  border: 1px solid var(--sm-line);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.86rem;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.sm-css-url-input::placeholder {
+  color: #626262;
+}
+
+.sm-css-url-input:hover {
+  border-color: var(--sm-line-strong);
+}
+
+.sm-css-url-input:focus {
+  border-color: rgba(43,176,255,0.38);
+  background: #101010;
+}
+
+/* ---------- CSS file upload ---------- */
+
+.sm-css-file-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 7px;
+  background: var(--sm-field);
+  color: var(--sm-text-muted);
+  border: 1px solid var(--sm-line);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.sm-css-file-input:hover {
+  border-color: var(--sm-line-strong);
+}
+
+.sm-css-file-input::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 12px;
+  background: #202020;
+  color: #e6e6e6;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sm-css-file-input::file-selector-button:hover {
+  background: #292929;
+  color: #fff;
+}
+
+/* ---------- uploaded file header ---------- */
+
+/* ---------- uploaded file header ---------- */
+
+.sm-css-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.sm-css-file-count {
+  color: var(--sm-text-muted);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
+/* Keep the title on the left and actions on the right */
+.sm-card-head:has(.sm-css-file-actions) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
+.sm-card-head:has(.sm-css-file-actions) .sm-card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- uploaded file list ---------- */
+
+.sm-css-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.sm-css-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 7px 10px;
+  background: rgba(0,0,0,0.22);
+  border: 1px solid var(--sm-line);
+  border-radius: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sm-css-file-item:hover {
+  background: rgba(255,255,255,0.025);
+  border-color: var(--sm-line-strong);
+}
+
+.sm-css-file-info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.sm-css-file-name {
+  overflow: hidden;
+  color: #e8e8e8;
+  font-size: 0.83rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sm-css-file-size {
+  color: var(--sm-text-muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+
+.sm-css-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  padding: 0;
+  background: transparent;
+  color: #858585;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sm-css-remove:hover {
+  background: rgba(255,82,82,0.14);
+  color: #ff5b5b;
+}
+
+/* ---------- flash highlight when search jumps to a card ---------- */
+
+.sm-flash {
+  animation: sm-flash 1.3s ease;
+}
+
+@keyframes sm-flash {
+  0%, 100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  20%, 65% {
+    box-shadow: 0 0 0 2px rgba(43,176,255,0.38);
+  }
+}
+
+/* ============================================================
+   Custom Player Color Plugin
+   ============================================================ */
+
+.sm-plugin-heading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.sm-plugin-toggle-control {
+  flex-shrink: 0;
+  width: 210px;
+  margin-left: auto;
+}
+
+.sm-plugin-checkbox {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+.sm-plugin-seg {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 38px;
+  padding: 2px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #070707;
+}
+
+.sm-plugin-seg-pill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / 2);
+  border-radius: 5px;
+  background: rgba(255,82,82,0.2);
+  transform: translateX(0);
+  transform-origin: center;
+  transition:
+    transform 0.42s cubic-bezier(.34,1.45,.55,1),
+    background-color 0.3s ease;
+  pointer-events: none;
+}
+
+.sm-plugin-checkbox:checked ~ .sm-plugin-seg .sm-plugin-seg-pill {
+  transform: translateX(100%);
+  background: rgba(43,176,255,0.2);
+}
+
+.sm-plugin-seg.sm-plugin-seg-go .sm-plugin-seg-pill {
+  animation: sm-plugin-seg-stretch 0.42s ease;
+}
+
+@keyframes sm-plugin-seg-stretch {
+  0% { scale: 1 1; }
+  35% { scale: 1.45 0.86; }
+  70% { scale: 0.96 1.04; }
+  100% { scale: 1 1; }
+}
+
+.sm-plugin-seg-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #f2f2f2;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.sm-plugin-seg-off.sm-selected {
+  color: #ff5b5b;
+}
+
+.sm-plugin-seg-on.sm-selected {
+  color: var(--sm-blue);
+}
+
+/* ---------- status ---------- */
+
+.sm-plugin-status {
+  margin-top: 2px;
+  margin-bottom: 12px;
+  font-size: 0.78rem;
+  color: var(--sm-text-muted);
+}
+
+/* ---------- color settings ---------- */
+
+.sm-plugin-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: opacity 0.18s ease;
+}
+
+.sm-plugin-settings.sm-plugin-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.sm-plugin-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sm-plugin-color-label {
+  color: var(--sm-text);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+.sm-plugin-color-input {
+  width: 42px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 6px;
+  background: var(--sm-field);
+  cursor: pointer;
+}
+
+.sm-plugin-color-input:hover {
+  border-color: #444;
+}
+
+/* ---------- reset button ---------- */
+
+.sm-plugin-button {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #212121;
+  color: #e6e6e6;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sm-plugin-button:hover {
+  background: rgba(255,82,82,0.16);
+  color: #ff5b5b;
+}
+
+.sm-plugin-button:active {
+  transform: scale(0.98);
+}
+
+/* ---------- plugin header ---------- */
+
+.sm-plugin-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 20px;
+}
+/* ---------- uploaded CSS file controls ---------- */
+
+.sm-css-file-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.sm-css-file-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 38px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sm-css-file-summary::-webkit-details-marker {
+  display: none;
+}
+
+.sm-css-file-summary::before {
+  content: "›";
+  color: #777;
+  font-size: 1.2rem;
+  transition: transform 0.2s ease;
+}
+
+.sm-css-file-details[open] .sm-css-file-summary::before {
+  transform: rotate(90deg);
+}
+
+.sm-css-file-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-width: 0;
+}
+
+.sm-css-file-toggle {
+  flex-shrink: 0;
+  min-width: 48px;
+  padding: 5px 10px;
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 5px;
+  background: #171717;
+  color: #aaa;
+  font-family: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.sm-css-file-toggle.sm-enabled {
+  color: var(--sm-blue);
+  background: rgba(43,176,255,0.1);
+  border-color: rgba(43,176,255,0.25);
+}
+
+.sm-css-file-toggle.sm-disabled {
+  color: #ff7777;
+  background: rgba(255,82,82,0.08);
+  border-color: rgba(255,82,82,0.2);
+}
+
+.sm-css-file-toggle:hover {
+  filter: brightness(1.25);
+}
+
+.sm-css-file-editor {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  margin-top: 10px;
+  padding: 12px;
+  resize: vertical;
+  background: #090909;
+  color: var(--sm-text);
+  border: 1px solid var(--sm-line);
+  border-radius: 6px;
+  outline: none;
+  font-family: 'JetBrains Mono','Fira Code','Consolas',monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.sm-css-file-editor:focus {
+  border-color: rgba(43,176,255,0.38);
+}
+
+.sm-css-file-editor::placeholder {
+  color: #626262;
+}

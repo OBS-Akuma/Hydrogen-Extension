@@ -1,0 +1,63 @@
+
+{
+  "manifest_version": 3,
+  "name": "Hydrogen",
+  "version": "0.0.1",
+  "description": "Browser Client",
+
+  "icons": {
+    "16": "icon/HYD.png",
+    "32": "icon/HYD.png",
+    "48": "icon/HYD.png",
+    "128": "icon/HYD.png"
+  },
+
+  "action": {
+    "default_icon": {
+      "16": "icon/HYD.png",
+      "32": "icon/HYD.png",
+      "48": "icon/HYD.png",
+      "128": "icon/HYD.png"
+    }
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icon/HYD.png",
+        "Backgrounds/Default.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "plugins/CustomPlayerColor.js",
+        "plugins/RoleDisplay.js",
+        "plugins/SkinTextureDownloader.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "lib/dom.js",
+        "lib/storage.js",
+        "lib/injector.js",
+        "lib/drag.js",
+        "ui/topbar.js",
+        "ui/search.js",
+        "ui/sidebar.js",
+        "ui/styleTab.js",
+        "ui/menu.js",
+        "content.js"
+      ],
+      "css": ["styles/menu.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
