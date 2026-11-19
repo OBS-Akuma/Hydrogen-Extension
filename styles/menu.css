@@ -397,6 +397,99 @@
   color: #fff;
 }
 
+.sm-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #707070;
+  cursor: pointer;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.18s, color 0.15s, background 0.15s;
+}
+
+.sm-card:hover .sm-info,
+.sm-info:hover,
+.sm-info:focus-visible,
+.sm-info.sm-copied {
+  opacity: 1;
+}
+
+.sm-info:hover,
+.sm-info.sm-copied {
+  color: #7ab8ff;
+  background: rgba(67, 139, 255, 0.12);
+}
+
+.sm-info-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sm-info-tip {
+  position: absolute;
+  left: -6px;
+  top: calc(100% + 8px);
+  z-index: 100;
+  display: none;
+  width: min(300px, calc(100vw - 48px));
+  padding: 11px 13px;
+  border: 1px solid var(--sm-line-strong);
+  border-radius: 8px;
+  background: #1b1b1b;
+  box-shadow: 0 14px 36px rgba(0,0,0,0.6);
+  color: #d0d0d0;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+
+.sm-info:hover .sm-info-tip,
+.sm-info:focus-visible .sm-info-tip,
+.sm-info.sm-copied .sm-info-tip {
+  display: block;
+}
+
+.sm-info-location {
+  display: block;
+  margin-bottom: 5px;
+  color: #7ab8ff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sm-info-body {
+  display: block;
+}
+
+.sm-info-hint {
+  display: block;
+  margin-top: 9px;
+  color: var(--sm-text-muted);
+  font-size: 0.72rem;
+}
+
+.sm-info.sm-copied .sm-info-hint {
+  color: #75d69c;
+}
+
 .sm-card-desc {
   margin-top: 2px;
   font-size: 0.78rem;

@@ -25,7 +25,8 @@
     {
       "resources": [
         "icon/HYD.png",
-        "Backgrounds/Default.png"
+        "Backgrounds/Default.png",
+        "json/CardInfo.json"
       ],
       "matches": ["<all_urls>"]
     }

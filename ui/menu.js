@@ -4,7 +4,7 @@
 
   const VERSION = chrome.runtime.getManifest().version;
 
-  window.SM.createMenu = function () {
+  window.SM.createMenu = function (cardInfo = {}) {
     const overlay = el('div', 'sm-root sm-overlay');
     const win = el('div', 'sm-window');
 
@@ -113,6 +113,171 @@
     main.appendChild(content);
     win.appendChild(main);
     overlay.appendChild(win);
+
+    function ordinal(number) {
+      const remainder = number % 100;
+
+      if (remainder >= 11 && remainder <= 13) {
+        return number + 'th';
+      }
+
+      return number + (['th', 'st', 'nd', 'rd'][number % 10] || 'th');
+    }
+
+    function createInfoButton(card, title, description) {
+      const button = el('button', 'sm-info', {
+        type: 'button'
+      });
+      button.setAttribute('aria-label', 'More information about ' + title);
+
+      const icon = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'svg'
+      );
+      icon.classList.add('sm-info-icon');
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+
+      const tip = el('span', 'sm-info-tip');
+      const location = el('span', 'sm-info-location');
+      const body = el('span', 'sm-info-body', {
+        textContent: description
+      });
+      const hint = el('span', 'sm-info-hint', {
+        textContent: 'Click to copy'
+      });
+
+      tip.append(location, body, hint);
+      button.append(icon, tip);
+
+      function setIcon(copied) {
+        icon.replaceChildren();
+
+        if (copied) {
+          const check = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'path'
+          );
+          check.setAttribute('d', 'M20 6 9 17l-5-5');
+          icon.appendChild(check);
+          return;
+        }
+
+        const circle = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'circle'
+        );
+        circle.setAttribute('cx', '12');
+        circle.setAttribute('cy', '12');
+        circle.setAttribute('r', '10');
+
+        const line = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'line'
+        );
+        line.setAttribute('x1', '12');
+        line.setAttribute('y1', '16');
+        line.setAttribute('x2', '12');
+        line.setAttribute('y2', '12');
+
+        const dot = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'line'
+        );
+        dot.setAttribute('x1', '12');
+        dot.setAttribute('y1', '8');
+        dot.setAttribute('x2', '12.01');
+        dot.setAttribute('y2', '8');
+
+        icon.append(circle, line, dot);
+      }
+
+      function getLocation() {
+        const tab = card.closest('.sm-tab-content');
+        const cards = tab
+          ? Array.from(tab.querySelectorAll('.sm-card'))
+          : [];
+        const tabName = tab?.id === 'tab-plugins' ? 'Plugins' : 'Style';
+
+        return `${tabName} tab > ${ordinal(cards.indexOf(card) + 1)} card`;
+      }
+
+      function updateLocation() {
+        location.textContent = getLocation();
+      }
+
+      let resetTimer = null;
+      button.addEventListener('mouseenter', updateLocation);
+      button.addEventListener('focus', updateLocation);
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        updateLocation();
+
+        const text = `${location.textContent}: ${title}\nHow to use: ${description}`;
+        const fallbackCopy = () => {
+          const input = el('textarea');
+          input.value = text;
+          input.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+          document.body.appendChild(input);
+          input.select();
+
+          try {
+            document.execCommand('copy');
+          } catch (error) {
+            console.warn('[SM] Could not copy card info:', error);
+          }
+
+          input.remove();
+        };
+
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(text).catch(fallbackCopy);
+        } else {
+          fallbackCopy();
+        }
+
+        button.classList.add('sm-copied');
+        setIcon(true);
+        hint.textContent = 'Copied!';
+
+        clearTimeout(resetTimer);
+        resetTimer = setTimeout(() => {
+          button.classList.remove('sm-copied');
+          setIcon(false);
+          hint.textContent = 'Click to copy';
+        }, 1600);
+      });
+
+      setIcon(false);
+      return button;
+    }
+
+    function addCardInfo(card) {
+      const titleElement = card.querySelector('.sm-card-title');
+
+      if (!titleElement || titleElement.querySelector('.sm-info')) return;
+
+      const title = titleElement.textContent.trim();
+      const description = cardInfo[title];
+
+      if (typeof description !== 'string' || !description) return;
+
+      titleElement.appendChild(
+        createInfoButton(card, title, description)
+      );
+    }
+
+    function updateCardInfo() {
+      overlay.querySelectorAll('.sm-card').forEach(addCardInfo);
+    }
+
+    updateCardInfo();
+
+    const cardInfoObserver = new MutationObserver(updateCardInfo);
+    cardInfoObserver.observe(overlay, {
+      childList: true,
+      subtree: true
+    });
 
     window.SM.makeDraggable(win, topbar, {
       onMove: (x, y) => {

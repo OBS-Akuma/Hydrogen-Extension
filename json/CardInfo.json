@@ -1,0 +1,8 @@
+{
+  "CSS URL": "Paste a link to a .css file, like a raw GitHub link. It applies by itself after you paste or stop typing.",
+  "Upload CSS Files": "Click Choose File and pick a .css file, and it applies right away. Use the X next to a file to remove it, or Clear to remove them all.",
+  "Raw CSS": "Type or paste CSS in the box and it applies by itself after you stop typing. Empty the box to remove it.",
+  "Custom Player Color": "Choose head and body colors to customize your player model. Turn the plugin on to apply them, or use Reset Colors to restore the defaults.",
+  "Role Display": "Turn it on to display player roles on profiles. Turn it off to remove the role card.",
+  "Skin Texture Downloader": "Turn it on to add a texture download button to skin cards. Click TEXTURE to download the original texture."
+}
