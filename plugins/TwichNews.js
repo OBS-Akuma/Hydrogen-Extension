@@ -41,10 +41,10 @@
     try {
       const raw = localStorage.getItem("sm_plugin_" + PLUGIN_ID);
       const settings = raw ? JSON.parse(raw) : {};
-      return typeof settings.enabled === "boolean" ? settings.enabled : true;
+      return typeof settings.enabled === "boolean" ? settings.enabled : false;
     } catch (error) {
       console.warn("[TwitchNews] Could not load settings:", error);
-      return true;
+      return false;
     }
   }
 
