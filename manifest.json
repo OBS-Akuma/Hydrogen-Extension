@@ -4,6 +4,10 @@
   "name": "Hydrogen",
   "version": "0.0.1",
   "description": "Browser Client",
+  "permissions": ["tabs", "downloads"],
+  "background": {
+    "service_worker": "background.js"
+  },
 
   "icons": {
     "16": "icon/HYD.png",
@@ -57,6 +61,7 @@
         "ui/sidebar.js",
         "ui/styleTab.js",
         "ui/clientTab.js",
+        "ui/hotkeysTab.js",
         "ui/menu.js",
         "content.js"
       ],

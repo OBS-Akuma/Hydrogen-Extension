@@ -36,6 +36,8 @@
     }
 
     const menu = window.SM.createMenu(cardInfo);
+    let screenshotKeyPending = false;
+    let screenshotKeyTimer = null;
 
     function isTyping(target) {
       return !!(
@@ -45,8 +47,33 @@
       );
     }
 
+    function resetScreenshotSequence() {
+      screenshotKeyPending = false;
+      clearTimeout(screenshotKeyTimer);
+      screenshotKeyTimer = null;
+    }
+
     document.addEventListener('keydown', (event) => {
       if (event.repeat) return;
+
+      const hasModifiers =
+        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey;
+
+      if (isTyping(event.target) || hasModifiers) {
+        resetScreenshotSequence();
+      } else if (event.key.toLowerCase() === 'f') {
+        resetScreenshotSequence();
+        screenshotKeyPending = true;
+        screenshotKeyTimer = setTimeout(resetScreenshotSequence, 1500);
+      } else if (screenshotKeyPending) {
+        resetScreenshotSequence();
+
+        if (event.key === '1') {
+          event.preventDefault();
+          menu.takeScreenshot();
+          return;
+        }
+      }
 
       if (event.code === 'ShiftRight') {
         if (isTyping(event.target)) return;

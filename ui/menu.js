@@ -29,7 +29,8 @@
       get visible() { return visible; },
       show,
       hide,
-      toggle
+      toggle,
+      takeScreenshot
     };
 
     const topbar = window.SM.buildTopbar({ onClose: hide });
@@ -122,6 +123,11 @@
 
     const clientTab = window.SM.buildClientTab();
     content.appendChild(clientTab.root);
+
+    const hotkeysTab = window.SM.buildHotkeysTab({
+      onScreenshot: takeScreenshot
+    });
+    content.appendChild(hotkeysTab.root);
 
     main.appendChild(content);
     win.appendChild(main);
@@ -334,6 +340,25 @@
       });
 
       content.scrollTop = 0;
+    }
+
+    async function takeScreenshot() {
+      hotkeysTab.setStatus('Capturing screenshot...');
+
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'hydrogen.captureScreenshot'
+        });
+
+        if (!response || !response.ok) {
+          throw new Error(response?.error || 'Screenshot capture failed.');
+        }
+
+        hotkeysTab.setStatus('Screenshot saved to Downloads/Hydrogen.');
+      } catch (error) {
+        console.error('[SM] Screenshot capture failed:', error);
+        hotkeysTab.setStatus('Screenshot failed: ' + error.message);
+      }
     }
 
     function show() {
