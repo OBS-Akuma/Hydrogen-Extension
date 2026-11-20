@@ -15,7 +15,7 @@
 
             return typeof settings.enabled === 'boolean'
                 ? settings.enabled
-                : true;
+                : false;
         } catch (error) {
             console.warn('[FriendsBannedColor] Could not load settings:', error);
             return true;
