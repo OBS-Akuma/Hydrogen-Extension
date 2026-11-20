@@ -32,13 +32,23 @@
         "Backgrounds/halloween.webp",
         "json/CardInfo.json"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "https://snipers.io/*",
+        "https://ask101math.com/*",
+        "https://fpsiogame.com/*",
+        "https://cloudconverts.com/*"
+      ]
     }
   ],
 
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://snipers.io/*",
+        "https://ask101math.com/*",
+        "https://fpsiogame.com/*",
+        "https://cloudconverts.com/*"
+      ],
       "js": [
         "plugins/CustomPlayerColor.js",
         "plugins/RoleDisplay.js",
@@ -49,7 +59,12 @@
       "world": "MAIN"
     },
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://snipers.io/*",
+        "https://ask101math.com/*",
+        "https://fpsiogame.com/*",
+        "https://cloudconverts.com/*"
+      ],
       "js": [
         "lib/dom.js",
         "lib/storage.js",
