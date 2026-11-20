@@ -34,6 +34,36 @@
     }
   },
   {
+    id: 'friends-banned-color',
+    title: 'Friends Banned Color',
+    desc: 'Highlights banned friends in the friends list, banned players, friend status',
+    label: 'Plugins',
+    item: {
+      tab: 'plugins',
+      plugin: 'friends-banned-color'
+    }
+  },
+  {
+    id: 'twitch-news',
+    title: 'Twitch News',
+    desc: 'Live Twitch streamers, Kirka streams, active Twitch Drops, lobby news',
+    label: 'Plugins',
+    item: {
+      tab: 'plugins',
+      plugin: 'twitch-news'
+    }
+  },
+  {
+    id: 'map-skybox-textures',
+    title: 'Map & Skybox Textures',
+    desc: 'Custom map textures, map texture browser, skyboxes, skybox packs',
+    label: 'Plugins',
+    item: {
+      tab: 'plugins',
+      plugin: 'map-skybox-textures'
+    }
+  },
+  {
     id: 'skin-texture-downloader',
     title: 'Skin Texture Downloader',
     desc: 'Download skin textures, WEBP files, skin images, texture extractor',

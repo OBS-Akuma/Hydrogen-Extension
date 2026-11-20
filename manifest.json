@@ -50,6 +50,9 @@
       "js": [
         "plugins/CustomPlayerColor.js",
         "plugins/RoleDisplay.js",
+        "plugins/FriendsbannedColor.js",
+        "plugins/TwichNews.js",
+        "plugins/SbAndBt.js",
         "plugins/SkinTextureDownloader.js",
         "plugins/ItemPriceInfo.js"
       ],
