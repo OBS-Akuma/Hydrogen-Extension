@@ -43,8 +43,7 @@
         "plugins/CustomPlayerColor.js",
         "plugins/RoleDisplay.js",
         "plugins/SkinTextureDownloader.js",
-        "plugins/ItemPriceInfo.js",
-        "plugins/ExampleControls.js"
+        "plugins/ItemPriceInfo.js"
       ],
       "run_at": "document_start",
       "world": "MAIN"
