@@ -75,7 +75,7 @@
     });
     sidebar.appendChild(
       el('div', 'sm-sidebar-version', {
-        textContent: 'v' + version
+        textContent: 'v' + version + ' Works on v0.44.4 of kirka'
       })
     );
     sidebar.appendChild(links);
