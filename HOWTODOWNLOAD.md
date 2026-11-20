@@ -9,7 +9,9 @@
 
 2. Select **Code**, then **Download ZIP**.
 3. Extract the downloaded ZIP file. Keep the extracted folder somewhere you will not accidentally delete; the browser loads the extension from that folder.
+<div align="center">
  <img width="729" height="500" alt="ex" src="https://github.com/user-attachments/assets/376e06e3-a081-46fb-99ba-4440f9febb53" />
+ </div>
 
  <div align="center">
 <h2>Install in Chrome</h2>
@@ -38,7 +40,9 @@
 3. Press the **Right Shift** key to open or close the Hydrogen menu. Press **Escape** to close it (if Right shift isn't working)
 4. Use the menu tabs to adjust the available styles, plugins, and client settings. Changes are saved by the extension.
 
-The extension does not open a popup from the browser toolbar; its menu is displayed on supported websites.
+<div align="center">
+<p> The extension does not open a popup from the browser toolbar; its menu is displayed on supported websites.</p>
+</div>
 
  <div align="center">
 <h2>Update or Remove</h2>
