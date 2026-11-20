@@ -14,6 +14,12 @@
       tabs: [
         { id: 'plugins', label: 'Plugins' }
       ]
+    },
+    {
+      title: 'Settings',
+      tabs: [
+        { id: 'client', label: 'Client' }
+      ]
     }
   ];
 

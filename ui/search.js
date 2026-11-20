@@ -42,7 +42,47 @@
         tab: 'plugins',
         plugin: 'skin-texture-downloader'
     }
-   }
+  },
+  {
+    id: 'item-price-info',
+    title: 'Item Price Info',
+    desc: 'Skin prices, item values, owners, obtain method, date added, rank',
+    label: 'Plugins',
+    item: {
+      tab: 'plugins',
+      plugin: 'item-price-info'
+    }
+  },
+  {
+    id: 'example-controls',
+    title: 'Example Controls',
+    desc: 'Example slider, select dropdown, and text input UI controls',
+    label: 'Plugins',
+    item: {
+      tab: 'plugins',
+      plugin: 'example-controls'
+    }
+  },
+  {
+    id: 'interface-scale',
+    title: 'Interface Scale',
+    desc: 'Adjust the in-game interface size from 80% to 100%',
+    label: 'Style',
+    item: {
+      tab: 'style',
+      selector: '#tab-style [data-hydrogen-setting="interface-scale"]'
+    }
+  },
+  {
+    id: 'interface-opacity',
+    title: 'Interface Opacity',
+    desc: 'Adjust the in-game interface opacity from 0% to 100%',
+    label: 'Style',
+    item: {
+      tab: 'style',
+      selector: '#tab-style [data-hydrogen-setting="interface-opacity"]'
+    }
+  }
 ];
 
   function normalizeEntry(entry) {

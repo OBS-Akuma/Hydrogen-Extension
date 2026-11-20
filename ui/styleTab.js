@@ -11,6 +11,145 @@
     const root = el('div', 'sm-tab-content sm-active');
     root.id = 'tab-' + tabId;
 
+    const interfaceCard = el('div', 'sm-card sm-example-controls');
+    const initialBounds = initialSettings?.interface_bounds;
+    const initialScaleValue = initialBounds === '0'
+      ? '80'
+      : initialBounds === '1'
+        ? '90'
+        : /^(?:100|(?:8[0-9]|9[0-9]))$/.test(String(initialBounds))
+          ? String(initialBounds)
+          : '100';
+    const scaleInput = el('input', 'sm-example-slider', {
+      type: 'range',
+      min: '80',
+      max: '100',
+      step: '1',
+      value: initialScaleValue
+    });
+    scaleInput.classList.add('sm-interface-scale-slider');
+    scaleInput.setAttribute('aria-label', 'Interface Scale');
+
+    const scaleValueInput = el('input', 'sm-interface-value', {
+      type: 'number',
+      min: '80',
+      max: '100',
+      step: '1',
+      value: initialScaleValue
+    });
+    scaleValueInput.setAttribute('aria-label', 'Interface Scale value (%)');
+
+    const savedOpacity = String(initialSettings?.interface_opacity ?? '');
+    const opacityValue =
+      /^(?:100|[0-9]{1,2})$/.test(savedOpacity)
+        ? String(Number(savedOpacity))
+        : '100';
+    const opacityInput = el('input', 'sm-example-slider', {
+      type: 'range',
+      min: '0',
+      max: '100',
+      step: '1',
+      value: opacityValue
+    });
+    opacityInput.classList.add('sm-interface-opacity-slider');
+    opacityInput.setAttribute('aria-label', 'Interface Opacity');
+
+    const opacityValueInput = el('input', 'sm-interface-value', {
+      type: 'number',
+      min: '0',
+      max: '100',
+      step: '1',
+      value: opacityValue
+    });
+    opacityValueInput.setAttribute('aria-label', 'Interface Opacity value (%)');
+
+    function createInterfaceControl(slider, valueInput, label) {
+      const control = el('div', 'sm-interface-control');
+      const valueGroup = el('div', 'sm-interface-value-group');
+      const stepper = el('div', 'sm-interface-stepper');
+      const stepButtons = [];
+
+      valueGroup.append(valueInput);
+
+      [
+        { direction: 1, action: 'Increase', path: 'M3 7.5 6 4.5l3 3' },
+        { direction: -1, action: 'Decrease', path: 'M3 4.5 6 7.5l3-3' }
+      ].forEach(({ direction, action, path }) => {
+        const buttonLabel = action + ' ' + label;
+        const button = el('button', 'sm-interface-step', {
+          type: 'button',
+          title: buttonLabel
+        });
+        button.setAttribute('aria-label', buttonLabel);
+
+        const icon = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'svg'
+        );
+        icon.setAttribute('viewBox', '0 0 12 12');
+        icon.setAttribute('aria-hidden', 'true');
+
+        const arrow = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'path'
+        );
+        arrow.setAttribute('d', path);
+        icon.appendChild(arrow);
+        button.appendChild(icon);
+        stepper.appendChild(button);
+        stepButtons.push({ button, direction });
+      });
+
+      valueGroup.appendChild(stepper);
+      control.append(
+        slider,
+        valueGroup,
+        el('span', 'sm-interface-unit', '%')
+      );
+
+      return { root: control, stepButtons };
+    }
+
+    function createInterfaceRow(settingId, titleText, descriptionText, control) {
+      const row = el('div', 'sm-example-row');
+      row.dataset.hydrogenSetting = settingId;
+      const heading = el('div', 'sm-example-heading');
+
+      heading.append(
+        el('div', 'sm-card-title', { textContent: titleText }),
+        el('div', 'sm-card-desc', { textContent: descriptionText })
+      );
+      row.append(heading, control);
+
+      return row;
+    }
+
+    const scaleControl = createInterfaceControl(
+      scaleInput,
+      scaleValueInput,
+      'Interface Scale'
+    );
+    const opacityControl = createInterfaceControl(
+      opacityInput,
+      opacityValueInput,
+      'Interface Opacity'
+    );
+
+    interfaceCard.append(
+      createInterfaceRow(
+        'interface-scale',
+        'Interface Scale',
+        'Shrink the in-game HUD and interface',
+        scaleControl.root
+      ),
+      createInterfaceRow(
+        'interface-opacity',
+        'Interface Opacity',
+        'Fade the in-game HUD',
+        opacityControl.root
+      )
+    );
+
     const searchCard = el('div', 'sm-card');
     const searchHead = el('div', 'sm-card-head');
 
@@ -37,12 +176,126 @@
       ? initialSettings.files.map(file => ({ ...file }))
       : [];
 
+    function getInterfaceSettings() {
+      return {
+        interface_bounds: scaleInput.value === '100'
+          ? ''
+          : scaleInput.value,
+        interface_opacity: opacityInput.value
+      };
+    }
+
     const saveSettings = () => {
       window.SM.storage.saveStyleSettings({
         cssUrl: linkInput.value,
-        files: uploadedFiles
+        files: uploadedFiles,
+        ...getInterfaceSettings()
       });
     };
+
+    const applyInterfaceSettings = () => {
+      window.SM.injector.applyInterfaceSettings(getInterfaceSettings());
+    };
+
+    function bindSlider(slider, valueInput, min, max, stepButtons, stops) {
+      const updateStopHighlight = () => {
+        slider.classList.toggle(
+          'sm-at-stop',
+          stops.includes(Number(slider.value))
+        );
+      };
+
+      const updateStepper = () => {
+        const value = Number(slider.value);
+
+        updateStopHighlight();
+
+        stepButtons.forEach(({ button, direction }) => {
+          button.disabled = direction > 0 ? value >= max : value <= min;
+        });
+      };
+
+      const updateFromSlider = () => {
+        valueInput.value = slider.value;
+        updateStepper();
+        applyInterfaceSettings();
+      };
+
+      slider.addEventListener('input', updateFromSlider);
+      slider.addEventListener('change', () => {
+        updateFromSlider();
+        saveSettings();
+      });
+
+      valueInput.addEventListener('input', () => {
+        const value = Number(valueInput.value);
+
+        if (
+          valueInput.value === '' ||
+          !Number.isInteger(value) ||
+          value < min ||
+          value > max
+        ) {
+          return;
+        }
+
+        slider.value = String(value);
+        updateStepper();
+        applyInterfaceSettings();
+      });
+
+      valueInput.addEventListener('change', () => {
+        const value = Number(valueInput.value);
+        const valid = valueInput.value !== '' &&
+          Number.isInteger(value) &&
+          value >= min &&
+          value <= max;
+
+        if (!valid) {
+          valueInput.value = slider.value;
+        } else {
+          slider.value = String(value);
+        }
+
+        updateStepper();
+        applyInterfaceSettings();
+        saveSettings();
+      });
+
+      stepButtons.forEach(({ button, direction }) => {
+        button.addEventListener('click', () => {
+          const value = Number(slider.value);
+          const nextValue = Math.max(min, Math.min(max, value + direction));
+
+          if (nextValue === value) return;
+
+          slider.value = String(nextValue);
+          valueInput.value = slider.value;
+          updateStepper();
+          applyInterfaceSettings();
+          saveSettings();
+        });
+      });
+
+      updateStepper();
+    }
+
+    bindSlider(
+      scaleInput,
+      scaleValueInput,
+      80,
+      100,
+      scaleControl.stepButtons,
+      [80, 90, 100]
+    );
+    bindSlider(
+      opacityInput,
+      opacityValueInput,
+      0,
+      100,
+      opacityControl.stepButtons,
+      [0, 25, 50, 75, 100]
+    );
 
     const applyLink = () => {
       window.SM.injector.scheduleLink(linkInput.value);
@@ -56,6 +309,28 @@
     });
 
     searchCard.appendChild(linkInput);
+
+    const rawDetails = el('details', 'sm-raw-css-details');
+    const rawHead = el('summary', 'sm-card-head sm-raw-css-summary');
+    rawHead.append(
+      el('span', 'sm-card-title', { textContent: 'Raw CSS' }),
+      el('span', 'sm-card-desc', {
+        textContent: 'Paste CSS here, it applies automatically'
+      })
+    );
+    rawDetails.appendChild(rawHead);
+
+    const ta = el('textarea', 'sm-textarea', {
+      placeholder: `#logo {
+  content: url("https://raw.githubusercontent.com/OBS-Akuma/Ubuntu-client/refs/heads/main/assets/hyd_logo.png");
+  object-fit: contain;
+}`,
+      spellcheck: false
+    });
+
+    ta.value = initialCss || '';
+    rawDetails.appendChild(ta);
+    searchCard.appendChild(rawDetails);
     root.appendChild(searchCard);
 
     const filesCard = el('div', 'sm-card');
@@ -239,31 +514,7 @@
 
     updateFileList();
     root.appendChild(filesCard);
-
-    const rawCard = el('div', 'sm-card');
-    const rawHead = el('div', 'sm-card-head');
-
-    rawHead.appendChild(el('div', 'sm-card-title', {
-      textContent: 'Raw CSS'
-    }));
-
-    rawHead.appendChild(el('div', 'sm-card-desc', {
-      textContent: 'Paste CSS here, it applies automatically'
-    }));
-
-    rawCard.appendChild(rawHead);
-
-    const ta = el('textarea', 'sm-textarea', {
-      placeholder: `#logo {
-  content: url("https://raw.githubusercontent.com/OBS-Akuma/Ubuntu-client/refs/heads/main/assets/hyd_logo.png");
-  object-fit: contain;
-}`,
-      spellcheck: false
-    });
-
-    ta.value = initialCss || '';
-    rawCard.appendChild(ta);
-    root.appendChild(rawCard);
+    root.appendChild(interfaceCard);
 
     const persist = () => {
       window.SM.injector.schedule(ta.value);
@@ -277,13 +528,29 @@
       window.SM.storage.saveCss(ta.value);
     });
 
-    window.SM.searchIndex.push({
-      id: tabId,
-      label: tabLabel,
-      title: 'CSS',
-      desc: 'CSS URL, upload CSS files, or paste custom CSS',
-      item: searchCard
-    });
+    window.SM.searchIndex.push(
+      {
+        id: 'css-url',
+        label: tabLabel,
+        title: 'CSS URL',
+        desc: 'Load a stylesheet from a link',
+        item: searchCard
+      },
+      {
+        id: 'upload-css-files',
+        label: tabLabel,
+        title: 'Upload CSS Files',
+        desc: 'Choose, manage, or remove uploaded CSS files',
+        item: filesCard
+      },
+      {
+        id: 'raw-css',
+        label: tabLabel,
+        title: 'Raw CSS',
+        desc: 'Type or paste custom CSS directly',
+        item: rawDetails
+      }
+    );
 
     return { root, textarea: ta };
   };

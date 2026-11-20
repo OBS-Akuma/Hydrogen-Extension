@@ -62,9 +62,19 @@
             target = document.querySelector(
               '#tab-plugins [data-hydrogen-plugin="' + item.plugin + '"]'
             );
+          } else if (
+            item &&
+            typeof item === 'object' &&
+            item.selector
+          ) {
+            target = document.querySelector(item.selector);
           }
 
           if (!target) return;
+
+          if (target.tagName === 'DETAILS') {
+            target.open = true;
+          }
 
           target.scrollIntoView({
             block: 'center',
@@ -109,6 +119,9 @@
     pluginsTab.id = 'tab-plugins';
 
     content.appendChild(pluginsTab);
+
+    const clientTab = window.SM.buildClientTab();
+    content.appendChild(clientTab.root);
 
     main.appendChild(content);
     win.appendChild(main);
@@ -210,6 +223,7 @@
       button.addEventListener('mouseenter', updateLocation);
       button.addEventListener('focus', updateLocation);
       button.addEventListener('click', event => {
+        event.preventDefault();
         event.stopPropagation();
         updateLocation();
 
@@ -253,18 +267,18 @@
     }
 
     function addCardInfo(card) {
-      const titleElement = card.querySelector('.sm-card-title');
+      card.querySelectorAll('.sm-card-title').forEach(titleElement => {
+        if (titleElement.querySelector('.sm-info')) return;
 
-      if (!titleElement || titleElement.querySelector('.sm-info')) return;
+        const title = titleElement.textContent.trim();
+        const description = cardInfo[title];
 
-      const title = titleElement.textContent.trim();
-      const description = cardInfo[title];
+        if (typeof description !== 'string' || !description) return;
 
-      if (typeof description !== 'string' || !description) return;
-
-      titleElement.appendChild(
-        createInfoButton(card, title, description)
-      );
+        titleElement.appendChild(
+          createInfoButton(card, title, description)
+        );
+      });
     }
 
     function updateCardInfo() {
