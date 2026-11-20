@@ -1,2 +1,2 @@
 # Hydrogen-Extension
-Browser Client
+Browser Client.
