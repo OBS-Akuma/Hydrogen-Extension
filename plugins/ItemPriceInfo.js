@@ -17,20 +17,41 @@
     const BROS_SHEET_URL =
         'https://opensheet.elk.sh/1tzHjKpu2gYlHoCePjp6bFbKBGvZpwDjiRzT9ZUfNwbY/4';
 
-    function loadEnabled() {
+    function loadSettings() {
         try {
             const raw = localStorage.getItem('sm_plugin_' + PLUGIN_ID);
-            const settings = raw ? JSON.parse(raw) : {};
-            return typeof settings.enabled === 'boolean'
-                ? settings.enabled
-                : true;
+            const stored = raw ? JSON.parse(raw) : {};
+
+            return {
+                enabled:
+                    typeof stored.enabled === 'boolean' ? stored.enabled : true,
+                fate: typeof stored.fate === 'boolean' ? stored.fate : true,
+                bros: typeof stored.bros === 'boolean' ? stored.bros : true,
+                bolt: typeof stored.bolt === 'boolean' ? stored.bolt : true,
+                owners:
+                    typeof stored.owners === 'boolean' ? stored.owners : true,
+                obtain:
+                    typeof stored.obtain === 'boolean' ? stored.obtain : true,
+                date: typeof stored.date === 'boolean' ? stored.date : true,
+                rank: typeof stored.rank === 'boolean' ? stored.rank : true
+            };
         } catch (error) {
             console.warn('[ItemPriceInfo] Could not load settings:', error);
-            return true;
+            return {
+                enabled: true,
+                fate: true,
+                bros: true,
+                bolt: true,
+                owners: true,
+                obtain: true,
+                date: true,
+                rank: true
+            };
         }
     }
 
-    let enabled = loadEnabled();
+    const settings = loadSettings();
+    let enabled = settings.enabled;
     let dataLoaded = false;
     let settingsObserver = null;
 
@@ -293,6 +314,14 @@
             ownedEl.dataset.originalText = ownedEl.textContent.trim();
         }
 
+        if (!settings.owners) {
+            ownedEl.textContent =
+                ownedEl.dataset.originalText || ownedEl.textContent;
+            delete ownedEl.dataset.ownedModified;
+            delete ownedEl.dataset.originalText;
+            return;
+        }
+
         const owners = state.ownedMap.get(normalizeName(name));
         const original = ownedEl.dataset.originalText;
         const match = original.match(/^(\d+)(.*)$/);
@@ -372,7 +401,7 @@
         // ===== FATE — FIRST =====
         const fateValue = state.fateMap.get(normalizeName(name)) || 0;
 
-        if (fateValue > 0) {
+        if (settings.fate && fateValue > 0) {
             const fateEl = makeOwnedBadge('inspect-fate');
             fateEl.textContent = `Fate: ${Math.round(fateValue).toLocaleString()}`;
             currentRow.insertBefore(fateEl, currentOwned);
@@ -381,7 +410,7 @@
         // ===== BROS — SECOND =====
         const brosValue = state.brosMap.get(normalizeName(name)) || 0;
 
-        if (brosValue > 0) {
+        if (settings.bros && brosValue > 0) {
             const brosEl = makeOwnedBadge('inspect-bros');
             brosEl.textContent = `Bros: ${Math.round(brosValue).toLocaleString()}`;
             currentRow.insertBefore(brosEl, currentOwned);
@@ -390,7 +419,7 @@
         // ===== BOLT — THIRD =====
         const boltValue = state.priceMap.get(normalizeName(name)) || 0;
 
-        if (boltValue > 0) {
+        if (settings.bolt && boltValue > 0) {
             const boltEl = makeOwnedBadge('inspect-value');
             boltEl.textContent = `Bolt: ${Math.round(boltValue).toLocaleString()}`;
             currentRow.insertBefore(boltEl, currentOwned);
@@ -403,7 +432,7 @@
         const date = formatDateAdded(state.dateMap.get(normalizeName(name)));
 
         // ===== RANK =====
-        const rankData = await fetchSkinRank(name);
+        const rankData = settings.rank ? await fetchSkinRank(name) : null;
 
         if (state.stopped || version !== state.renderVersion) return;
 
@@ -441,9 +470,11 @@
             .querySelectorAll('.inspect-footer')
             .forEach((el) => el.remove());
 
-        const obtain = state.obtainMap.get(normalizeName(name));
+        const obtain = settings.obtain
+            ? state.obtainMap.get(normalizeName(name))
+            : null;
 
-        if (obtain || date) {
+        if ((settings.date && date) || obtain) {
             if (getComputedStyle(card).position === 'static') {
                 card.style.position = 'relative';
             }
@@ -480,7 +511,7 @@
                 footer.appendChild(badge);
             }
 
-            if (date) {
+            if (settings.date && date) {
                 const dateEl = makeOwnedBadge('inspect-date');
                 dateEl.textContent = date;
                 dateEl.style.cssText = `
@@ -623,11 +654,11 @@
         console.log('[ItemPriceInfo] stopped');
     }
 
-    function saveEnabled() {
+    function saveSettings() {
         try {
             localStorage.setItem(
                 'sm_plugin_' + PLUGIN_ID,
-                JSON.stringify({ enabled })
+                JSON.stringify(settings)
             );
         } catch (error) {
             console.error('[ItemPriceInfo] Could not save settings:', error);
@@ -684,7 +715,8 @@
             segment.classList.add('sm-plugin-seg-go');
 
             enabled = value;
-            saveEnabled();
+            settings.enabled = value;
+            saveSettings();
 
             if (enabled) {
                 start();
@@ -712,6 +744,25 @@
         return { root, sync };
     }
 
+    function makeDisplaySetting(key, labelText) {
+        const row = el('label', 'sm-plugin-setting-row');
+        const label = el('span', 'sm-plugin-color-label', labelText);
+        const checkbox = document.createElement('input');
+
+        checkbox.type = 'checkbox';
+        checkbox.checked = settings[key];
+        checkbox.addEventListener('change', () => {
+            settings[key] = checkbox.checked;
+            saveSettings();
+            state.renderVersion++;
+            scheduleRender();
+        });
+
+        row.append(label, checkbox);
+
+        return row;
+    }
+
     function createSettings() {
         const card = el('div', 'sm-card');
         card.dataset.hydrogenPlugin = PLUGIN_ID;
@@ -731,7 +782,27 @@
 
         const toggle = makeToggleControl();
         header.append(heading, toggle.root);
-        card.append(header);
+
+        const displaySettings = el('div', 'sm-plugin-settings');
+        displaySettings.append(
+            makeDisplaySetting('fate', 'Fate price'),
+            makeDisplaySetting('bros', 'Bros price'),
+            makeDisplaySetting('bolt', 'Bolt price'),
+            makeDisplaySetting('owners', 'Owner count'),
+            makeDisplaySetting('obtain', 'Obtainable by'),
+            makeDisplaySetting('date', 'Date added'),
+            makeDisplaySetting('rank', 'Rank')
+        );
+
+        displaySettings.classList.toggle('sm-plugin-disabled', !enabled);
+        toggle.root.addEventListener('hydrogen-toggle', (event) => {
+            displaySettings.classList.toggle(
+                'sm-plugin-disabled',
+                !event.detail.enabled
+            );
+        });
+
+        card.append(header, displaySettings);
 
         return card;
     }
