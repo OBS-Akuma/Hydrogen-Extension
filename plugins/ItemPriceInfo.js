@@ -674,13 +674,14 @@
         return element;
     }
 
-    function makeToggleControl() {
+    function makeToggleControl(initialValue, onChange) {
+        let value = initialValue;
         const root = el('div', 'sm-plugin-toggle-control');
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'sm-plugin-checkbox';
-        checkbox.checked = enabled;
+        checkbox.checked = value;
 
         const segment = el('div', 'sm-plugin-seg');
         const pill = el('span', 'sm-plugin-seg-pill');
@@ -700,42 +701,34 @@
         onButton.type = 'button';
 
         function sync() {
-            checkbox.checked = enabled;
-            offButton.classList.toggle('sm-selected', !enabled);
-            onButton.classList.toggle('sm-selected', enabled);
-            offButton.setAttribute('aria-pressed', String(!enabled));
-            onButton.setAttribute('aria-pressed', String(enabled));
+            checkbox.checked = value;
+            offButton.classList.toggle('sm-selected', !value);
+            onButton.classList.toggle('sm-selected', value);
+            offButton.setAttribute('aria-pressed', String(!value));
+            onButton.setAttribute('aria-pressed', String(value));
         }
 
-        function setState(value) {
-            if (enabled === value) return;
+        function setState(nextValue) {
+            if (value === nextValue) return;
 
             segment.classList.remove('sm-plugin-seg-go');
             void segment.offsetWidth;
             segment.classList.add('sm-plugin-seg-go');
 
-            enabled = value;
-            settings.enabled = value;
-            saveSettings();
-
-            if (enabled) {
-                start();
-            } else {
-                stop();
-            }
+            value = nextValue;
+            onChange(value);
 
             sync();
             root.dispatchEvent(
                 new CustomEvent('hydrogen-toggle', {
                     bubbles: true,
-                    detail: { enabled }
+                    detail: { enabled: value }
                 })
             );
         }
 
         offButton.addEventListener('click', () => setState(false));
         onButton.addEventListener('click', () => setState(true));
-        checkbox.addEventListener('change', () => setState(checkbox.checked));
 
         segment.append(pill, offButton, onButton);
         root.append(checkbox, segment);
@@ -745,20 +738,16 @@
     }
 
     function makeDisplaySetting(key, labelText) {
-        const row = el('label', 'sm-plugin-setting-row');
+        const row = el('div', 'sm-plugin-setting-row');
         const label = el('span', 'sm-plugin-color-label', labelText);
-        const checkbox = document.createElement('input');
-
-        checkbox.type = 'checkbox';
-        checkbox.checked = settings[key];
-        checkbox.addEventListener('change', () => {
-            settings[key] = checkbox.checked;
+        const toggle = makeToggleControl(settings[key], (value) => {
+            settings[key] = value;
             saveSettings();
             state.renderVersion++;
             scheduleRender();
         });
 
-        row.append(label, checkbox);
+        row.append(label, toggle.root);
 
         return row;
     }
@@ -780,7 +769,17 @@
 
         heading.append(title, description);
 
-        const toggle = makeToggleControl();
+        const toggle = makeToggleControl(enabled, (value) => {
+            enabled = value;
+            settings.enabled = value;
+            saveSettings();
+
+            if (enabled) {
+                start();
+            } else {
+                stop();
+            }
+        });
         header.append(heading, toggle.root);
 
         const displaySettings = el('div', 'sm-plugin-settings');
