@@ -8,7 +8,7 @@
 
   <br><br>
 
-  <a href="https://github.com/OBS-Akuma/Ubuntu-client/blob/main/HOWTODOWNLOAD.md">
+  <a href="https://github.com/OBS-Akuma/Hydrogen-Extension/blob/main/HOWTODOWNLOAD.md">
     <img src="https://img.shields.io/badge/How%20to%20Download-Click%20Here-00bcd4?style=for-the-badge" alt="How to Download">
   </a>
   <br>
