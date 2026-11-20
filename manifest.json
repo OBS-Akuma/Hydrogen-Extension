@@ -56,6 +56,7 @@
         "ui/search.js",
         "ui/sidebar.js",
         "ui/styleTab.js",
+        "ui/clientTab.js",
         "ui/menu.js",
         "content.js"
       ],
