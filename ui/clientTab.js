@@ -270,8 +270,8 @@
       );
     }
 
-    function saveBackgroundSettings(nextSettings, message) {
-      if (!window.SM.storage.saveBackgroundSettings(nextSettings)) {
+    async function saveBackgroundSettings(nextSettings, message) {
+      if (!await window.SM.storage.saveBackgroundSettings(nextSettings)) {
         backgroundStatus.textContent =
           'Could not save background settings. Check available browser storage.';
         renderBackgroundOptions();
@@ -304,8 +304,8 @@
       });
     }
 
-    backgroundSelect.addEventListener('change', () => {
-      saveBackgroundSettings({
+    backgroundSelect.addEventListener('change', async () => {
+      await saveBackgroundSettings({
         ...backgroundSettings,
         selected: backgroundSelect.value
       }, 'Background saved.');
@@ -346,7 +346,7 @@
         custom: backgroundSettings.custom.concat(additions),
         selected: additions[additions.length - 1].id
       };
-      const saved = saveBackgroundSettings(
+      const saved = await saveBackgroundSettings(
         nextSettings,
         errors.length
           ? 'Backgrounds saved. Some files failed: ' + errors.join('; ')
@@ -358,7 +358,7 @@
       }
     });
 
-    removeBackgroundButton.addEventListener('click', () => {
+    removeBackgroundButton.addEventListener('click', async () => {
       const nextSettings = {
         custom: backgroundSettings.custom.filter(
           background => background.id !== backgroundSettings.selected
@@ -366,7 +366,10 @@
         selected: 'default'
       };
 
-      saveBackgroundSettings(nextSettings, 'Uploaded background removed.');
+      await saveBackgroundSettings(
+        nextSettings,
+        'Uploaded background removed.'
+      );
     });
 
     renderBackgroundOptions();
@@ -479,7 +482,7 @@
           throw new Error('Could not save the Style tab settings.');
         }
 
-        if (!window.SM.storage.saveBackgroundSettings(data.backgrounds)) {
+        if (!await window.SM.storage.saveBackgroundSettings(data.backgrounds)) {
           throw new Error('Could not save the background settings.');
         }
 
