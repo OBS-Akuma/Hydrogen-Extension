@@ -44,6 +44,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://kirka.io/*",
         "https://snipers.io/*",
         "https://ask101math.com/*",
         "https://fpsiogame.com/*",
@@ -60,6 +61,7 @@
     },
     {
       "matches": [
+        "https://kirka.io/*",
         "https://snipers.io/*",
         "https://ask101math.com/*",
         "https://fpsiogame.com/*",
