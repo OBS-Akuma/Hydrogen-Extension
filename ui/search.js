@@ -54,16 +54,6 @@
     }
   },
   {
-    id: 'example-controls',
-    title: 'Example Controls',
-    desc: 'Example slider, select dropdown, and text input UI controls',
-    label: 'Plugins',
-    item: {
-      tab: 'plugins',
-      plugin: 'example-controls'
-    }
-  },
-  {
     id: 'interface-scale',
     title: 'Interface Scale',
     desc: 'Adjust the in-game interface size from 80% to 100%',
