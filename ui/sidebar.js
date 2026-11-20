@@ -58,6 +58,16 @@
         href: 'https://kirkacommunityhub.pages.dev/',
         image: 'icon/KA.png',
         label: 'Visit Kirka Community Hub'
+      },
+      {
+        href: 'https://ktiers.com/',
+        image: 'icon/ktiersIcon.png',
+        label: 'Kirka Competitive League'
+      },
+      {
+        href: 'https://smudgy.store/',
+        image: 'icon/smudgy.png',
+        label: 'Multipurpose Kirka website with various tools.'
       }
     ].forEach(link => {
       const anchor = el('a', 'sm-sidebar-link', {
