@@ -19,7 +19,8 @@
       title: 'Settings',
       tabs: [
         { id: 'client', label: 'Client' },
-        { id: 'hotkeys', label: 'Hotkeys' }
+        { id: 'hotkeys', label: 'Hotkeys' },
+        { id: 'screenshots', label: 'Screenshots' }
       ]
     }
   ];

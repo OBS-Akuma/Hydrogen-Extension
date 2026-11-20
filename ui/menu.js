@@ -4,7 +4,11 @@
 
   const VERSION = chrome.runtime.getManifest().version;
 
-  window.SM.createMenu = function (cardInfo = {}) {
+  window.SM.createMenu = function (
+    cardInfo = {},
+    initialHotkeys = window.SM.DEFAULT_HOTKEYS,
+    hotkeyLoadError = ''
+  ) {
     const overlay = el('div', 'sm-root sm-overlay');
     const win = el('div', 'sm-window');
 
@@ -22,11 +26,24 @@
 
     let visible = false;
     let activeTab = 'style';
+    let hotkeys = {
+      screenshot: [...initialHotkeys.screenshot],
+      toggleMenu: [...initialHotkeys.toggleMenu]
+    };
 
     const api = {
       overlay,
       window: win,
       get visible() { return visible; },
+      get hotkeys() {
+        return {
+          screenshot: [...hotkeys.screenshot],
+          toggleMenu: [...hotkeys.toggleMenu]
+        };
+      },
+      get isRecordingHotkey() {
+        return hotkeysTab.isRecording;
+      },
       show,
       hide,
       toggle,
@@ -125,9 +142,14 @@
     content.appendChild(clientTab.root);
 
     const hotkeysTab = window.SM.buildHotkeysTab({
-      onScreenshot: takeScreenshot
+      initialHotkeys: hotkeys,
+      loadError: hotkeyLoadError,
+      onSave: saveHotkeys
     });
     content.appendChild(hotkeysTab.root);
+
+    const screenshotsTab = window.SM.buildScreenshotsTab();
+    content.appendChild(screenshotsTab.root);
 
     main.appendChild(content);
     win.appendChild(main);
@@ -340,10 +362,31 @@
       });
 
       content.scrollTop = 0;
+
+      if (tabId === 'screenshots') {
+        screenshotsTab.refresh();
+      }
+    }
+
+    async function saveHotkeys(nextHotkeys) {
+      const response = await chrome.runtime.sendMessage({
+        type: 'hydrogen.saveHotkeys',
+        hotkeys: nextHotkeys
+      });
+
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Could not save shortcuts.');
+      }
+
+      hotkeys = response.hotkeys;
+      return {
+        screenshot: [...hotkeys.screenshot],
+        toggleMenu: [...hotkeys.toggleMenu]
+      };
     }
 
     async function takeScreenshot() {
-      hotkeysTab.setStatus('Capturing screenshot...');
+      screenshotsTab.setStatus('Capturing screenshot...');
 
       try {
         const response = await chrome.runtime.sendMessage({
@@ -354,10 +397,11 @@
           throw new Error(response?.error || 'Screenshot capture failed.');
         }
 
-        hotkeysTab.setStatus('Screenshot saved to Downloads/Hydrogen.');
+        await screenshotsTab.refresh();
+        screenshotsTab.setStatus('Screenshot added to the gallery.');
       } catch (error) {
         console.error('[SM] Screenshot capture failed:', error);
-        hotkeysTab.setStatus('Screenshot failed: ' + error.message);
+        screenshotsTab.setStatus('Screenshot failed: ' + error.message);
       }
     }
 
@@ -377,12 +421,6 @@
       });
 
       visible = true;
-
-      setTimeout(() => {
-        if (activeTab === 'style') {
-          styleTab.textarea.focus();
-        }
-      }, 80);
     }
 
     function hide() {

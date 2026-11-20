@@ -4,7 +4,8 @@
   "name": "Hydrogen",
   "version": "0.0.1",
   "description": "Browser Client",
-  "permissions": ["tabs", "downloads"],
+  "permissions": ["offscreen", "clipboardWrite"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
@@ -62,6 +63,7 @@
         "ui/styleTab.js",
         "ui/clientTab.js",
         "ui/hotkeysTab.js",
+        "ui/screenshotsTab.js",
         "ui/menu.js",
         "content.js"
       ],
