@@ -8,10 +8,30 @@
     const overlay = el('div', 'sm-root sm-overlay');
     const win = el('div', 'sm-window');
 
-    win.style.backgroundImage = `
-      linear-gradient(var(--sm-bg-tint), var(--sm-bg-tint)),
-      url("${chrome.runtime.getURL('Backgrounds/Default.png')}")
-    `;
+    const backgroundSettings = window.SM.storage.loadBackgroundSettings();
+    const backgroundPaths = {
+      default: 'Backgrounds/Default.png',
+      main: 'Backgrounds/main.png',
+      halloween: 'Backgrounds/halloween.webp'
+    };
+
+    function setBackground(source) {
+      win.style.backgroundImage =
+        `linear-gradient(var(--sm-bg-tint), var(--sm-bg-tint)), ` +
+        `url(${JSON.stringify(source)})`;
+    }
+
+    const selectedCustomBackground = backgroundSettings.custom.find(
+      background => background.id === backgroundSettings.selected
+    );
+    setBackground(
+      selectedCustomBackground
+        ? selectedCustomBackground.data
+        : chrome.runtime.getURL(
+            backgroundPaths[backgroundSettings.selected] ||
+            backgroundPaths.default
+          )
+    );
     win.style.backgroundSize = 'cover';
     win.style.backgroundPosition = 'center';
     win.style.backgroundRepeat = 'no-repeat';
@@ -120,7 +140,10 @@
 
     content.appendChild(pluginsTab);
 
-    const clientTab = window.SM.buildClientTab();
+    const clientTab = window.SM.buildClientTab({
+      initialBackgroundSettings: backgroundSettings,
+      onBackgroundChange: setBackground
+    });
     content.appendChild(clientTab.root);
 
     main.appendChild(content);

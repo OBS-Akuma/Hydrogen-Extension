@@ -3,6 +3,12 @@
   const FORMAT = 'Hydrogen Client Settings';
   const VERSION = 1;
   const PLUGIN_PREFIX = 'sm_plugin_';
+  const BUILTIN_BACKGROUNDS = ['default', 'main', 'halloween'];
+
+  function isBackgroundData(value) {
+    return typeof value === 'string' &&
+      /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(value);
+  }
 
   function isRecord(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
@@ -53,6 +59,7 @@
       settings: {
         css: window.SM.storage.loadCss(),
         style: window.SM.storage.loadStyleSettings(),
+        backgrounds: window.SM.storage.loadBackgroundSettings(),
         position: window.SM.storage.loadPos() || { x: 40, y: 40 },
         plugins: readPluginSettings()
       }
@@ -69,7 +76,13 @@
       throw new Error('This is not a supported Hydrogen settings file.');
     }
 
-    const { css, style, position, plugins } = data.settings;
+    const {
+      css,
+      style,
+      position,
+      plugins,
+      backgrounds = { selected: 'default', custom: [] }
+    } = data.settings;
 
     if (typeof css !== 'string') {
       throw new Error('The exported CSS setting is invalid.');
@@ -124,13 +137,43 @@
       throw new Error('The exported plugin settings are invalid.');
     }
 
+    if (
+      !isRecord(backgrounds) ||
+      typeof backgrounds.selected !== 'string' ||
+      !Array.isArray(backgrounds.custom)
+    ) {
+      throw new Error('The exported background settings are invalid.');
+    }
+
+    const backgroundIds = new Set(BUILTIN_BACKGROUNDS);
+
+    backgrounds.custom.forEach(background => {
+      if (
+        !isRecord(background) ||
+        typeof background.id !== 'string' ||
+        !/^[a-z0-9-]+$/i.test(background.id) ||
+        backgroundIds.has(background.id) ||
+        typeof background.name !== 'string' ||
+        !background.name.trim() ||
+        !isBackgroundData(background.data)
+      ) {
+        throw new Error('An exported custom background is invalid.');
+      }
+
+      backgroundIds.add(background.id);
+    });
+
+    if (!backgroundIds.has(backgrounds.selected)) {
+      throw new Error('The selected exported background is invalid.');
+    }
+
     Object.entries(plugins).forEach(([pluginId, settings]) => {
       if (!/^[a-z0-9][a-z0-9-]*$/i.test(pluginId) || !isRecord(settings)) {
         throw new Error('An exported plugin setting is invalid.');
       }
     });
 
-    return { css, style, position, plugins };
+    return { css, style, position, plugins, backgrounds };
   }
 
   function getPluginKeys() {
@@ -147,9 +190,193 @@
     return keys;
   }
 
-  window.SM.buildClientTab = function () {
+  window.SM.buildClientTab = function ({
+    initialBackgroundSettings,
+    onBackgroundChange
+  } = {}) {
     const root = el('div', 'sm-tab-content');
     root.id = 'tab-client';
+
+    const backgrounds = el('div', 'sm-card');
+    const backgroundsHead = el('div', 'sm-card-head');
+    backgroundsHead.append(
+      el('div', 'sm-card-title', { textContent: 'Background' }),
+      el('div', 'sm-card-desc', {
+        textContent: 'Choose a built-in background or upload your own image.'
+      })
+    );
+
+    let backgroundSettings = initialBackgroundSettings ||
+      window.SM.storage.loadBackgroundSettings();
+    const backgroundSelect = el('select', 'sm-css-url-input');
+    backgroundSelect.setAttribute('aria-label', 'Client background');
+    const backgroundInput = el('input', 'sm-css-file-input', {
+      type: 'file',
+      accept: 'image/png,image/jpeg,image/webp,image/gif',
+      multiple: true
+    });
+    backgroundInput.setAttribute('aria-label', 'Upload background images');
+
+    const removeBackgroundButton = el('button', 'sm-plugin-button', {
+      type: 'button',
+      textContent: 'Remove selected upload'
+    });
+    removeBackgroundButton.hidden = true;
+
+    const backgroundStatus = el('div', 'sm-plugin-status');
+    backgroundStatus.setAttribute('role', 'status');
+    backgroundStatus.setAttribute('aria-live', 'polite');
+
+    function backgroundUrl(settings) {
+      const selectedCustom = settings.custom.find(
+        background => background.id === settings.selected
+      );
+
+      if (selectedCustom) return selectedCustom.data;
+
+      const paths = {
+        default: 'Backgrounds/Default.png',
+        main: 'Backgrounds/main.png',
+        halloween: 'Backgrounds/halloween.webp'
+      };
+
+      return chrome.runtime.getURL(paths[settings.selected] || paths.default);
+    }
+
+    function renderBackgroundOptions() {
+      backgroundSelect.replaceChildren();
+
+      [
+        ['default', 'Default'],
+        ['main', 'Main'],
+        ['halloween', 'Halloween']
+      ].forEach(([id, label]) => {
+        backgroundSelect.appendChild(el('option', null, {
+          value: id,
+          textContent: label
+        }));
+      });
+
+      backgroundSettings.custom.forEach(background => {
+        backgroundSelect.appendChild(el('option', null, {
+          value: background.id,
+          textContent: background.name
+        }));
+      });
+
+      backgroundSelect.value = backgroundSettings.selected;
+      removeBackgroundButton.hidden = !backgroundSettings.custom.some(
+        background => background.id === backgroundSettings.selected
+      );
+    }
+
+    function saveBackgroundSettings(nextSettings, message) {
+      if (!window.SM.storage.saveBackgroundSettings(nextSettings)) {
+        backgroundStatus.textContent =
+          'Could not save background settings. Check available browser storage.';
+        renderBackgroundOptions();
+        return false;
+      }
+
+      backgroundSettings = nextSettings;
+      onBackgroundChange?.(backgroundUrl(backgroundSettings));
+      backgroundStatus.textContent = message;
+      renderBackgroundOptions();
+      return true;
+    }
+
+    function readImageAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          if (!isBackgroundData(reader.result)) {
+            reject(new Error('Unsupported image format.'));
+            return;
+          }
+
+          resolve(reader.result);
+        };
+        reader.onerror = () => {
+          reject(reader.error || new Error('Could not read the image file.'));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    backgroundSelect.addEventListener('change', () => {
+      saveBackgroundSettings({
+        ...backgroundSettings,
+        selected: backgroundSelect.value
+      }, 'Background saved.');
+    });
+
+    backgroundInput.addEventListener('change', async () => {
+      const files = Array.from(backgroundInput.files || []);
+      const additions = [];
+      const errors = [];
+
+      for (const file of files) {
+        try {
+          const data = await readImageAsDataUrl(file);
+          let id;
+
+          do {
+            id = 'custom-' + Date.now().toString(36) +
+              '-' + Math.random().toString(36).slice(2);
+          } while (backgroundSettings.custom.some(item => item.id === id) ||
+            additions.some(item => item.id === id));
+
+          additions.push({ id, name: file.name, data });
+        } catch (error) {
+          errors.push(file.name + ': ' + error.message);
+        }
+      }
+
+      backgroundInput.value = '';
+
+      if (!additions.length) {
+        if (errors.length) {
+          backgroundStatus.textContent = 'Upload failed: ' + errors.join('; ');
+        }
+        return;
+      }
+
+      const nextSettings = {
+        custom: backgroundSettings.custom.concat(additions),
+        selected: additions[additions.length - 1].id
+      };
+      const saved = saveBackgroundSettings(
+        nextSettings,
+        errors.length
+          ? 'Backgrounds saved. Some files failed: ' + errors.join('; ')
+          : 'Background uploaded and saved.'
+      );
+
+      if (!saved && errors.length) {
+        backgroundStatus.textContent += ' Upload errors: ' + errors.join('; ');
+      }
+    });
+
+    removeBackgroundButton.addEventListener('click', () => {
+      const nextSettings = {
+        custom: backgroundSettings.custom.filter(
+          background => background.id !== backgroundSettings.selected
+        ),
+        selected: 'default'
+      };
+
+      saveBackgroundSettings(nextSettings, 'Uploaded background removed.');
+    });
+
+    renderBackgroundOptions();
+    backgrounds.append(
+      backgroundsHead,
+      backgroundSelect,
+      backgroundInput,
+      removeBackgroundButton,
+      backgroundStatus
+    );
 
     const exportCard = el('div', 'sm-card');
     const exportHead = el('div', 'sm-card-head');
@@ -207,7 +434,7 @@
       textContent: 'Reload page to apply'
     });
     reloadButton.hidden = true;
-    root.append(exportCard, importCard, status, reloadButton);
+    root.append(backgrounds, exportCard, importCard, status, reloadButton);
 
     exportButton.addEventListener('click', () => {
       try {
@@ -251,6 +478,14 @@
         if (!await window.SM.storage.saveStyleSettings(data.style)) {
           throw new Error('Could not save the Style tab settings.');
         }
+
+        if (!window.SM.storage.saveBackgroundSettings(data.backgrounds)) {
+          throw new Error('Could not save the background settings.');
+        }
+
+        backgroundSettings = data.backgrounds;
+        onBackgroundChange?.(backgroundUrl(backgroundSettings));
+        renderBackgroundOptions();
 
         const importedPluginKeys = new Set(
           Object.keys(data.plugins).map(id => PLUGIN_PREFIX + id)

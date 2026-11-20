@@ -28,6 +28,8 @@
         "icon/H1K.png",
         "icon/KA.png",
         "Backgrounds/Default.png",
+        "Backgrounds/main.png",
+        "Backgrounds/halloween.webp",
         "json/CardInfo.json"
       ],
       "matches": ["<all_urls>"]
