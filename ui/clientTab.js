@@ -180,7 +180,23 @@
       type: 'file',
       accept: '.json,application/json'
     });
-    importCard.append(importHead, importInput);
+    importInput.setAttribute('aria-label', 'Import settings JSON file');
+
+    const importOr = el('div', 'sm-client-import-or', {
+      textContent: 'Or paste exported settings JSON'
+    });
+
+    const importText = el('textarea', 'sm-textarea sm-client-import-text', {
+      placeholder: 'Paste your exported Hydrogen settings JSON here...',
+      spellcheck: false
+    });
+    importText.setAttribute('aria-label', 'Paste settings JSON');
+
+    const importTextButton = el('button', 'sm-plugin-button', {
+      type: 'button',
+      textContent: 'Import Pasted Settings'
+    });
+    importCard.append(importHead, importInput, importOr, importText, importTextButton);
 
     const status = el('div', 'sm-plugin-status');
     status.setAttribute('role', 'status');
@@ -217,14 +233,11 @@
       }
     });
 
-    importInput.addEventListener('change', async () => {
-      const file = importInput.files && importInput.files[0];
-      if (!file) return;
-
+    async function importSettings(readText) {
       status.textContent = 'Importing settings...';
 
       try {
-        const data = validateImportData(JSON.parse(await file.text()));
+        const data = validateImportData(JSON.parse(await readText()));
         const oldPluginKeys = getPluginKeys();
 
         if (!window.SM.storage.saveCss(data.css)) {
@@ -259,11 +272,25 @@
         status.textContent =
           'Settings imported. Reload the page to apply all imported settings.';
         reloadButton.hidden = false;
+        return true;
       } catch (error) {
         console.error('[Client Settings] Import failed:', error);
         status.textContent = 'Import failed: ' + error.message;
-      } finally {
-        importInput.value = '';
+        return false;
+      }
+    }
+
+    importInput.addEventListener('change', async () => {
+      const file = importInput.files && importInput.files[0];
+      if (!file) return;
+
+      await importSettings(() => file.text());
+      importInput.value = '';
+    });
+
+    importTextButton.addEventListener('click', async () => {
+      if (await importSettings(() => importText.value)) {
+        importText.value = '';
       }
     });
 

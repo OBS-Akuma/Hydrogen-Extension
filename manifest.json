@@ -25,6 +25,8 @@
     {
       "resources": [
         "icon/HYD.png",
+        "icon/H1K.png",
+        "icon/KA.png",
         "Backgrounds/Default.png",
         "json/CardInfo.json"
       ],

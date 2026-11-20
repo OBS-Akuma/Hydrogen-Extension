@@ -47,11 +47,38 @@
       });
     });
 
+    const links = el('div', 'sm-sidebar-links');
+    [
+      {
+        href: 'https://www.yxzoi.xyz/Hydrogen',
+        image: 'icon/H1K.png',
+        label: 'Visit H1K'
+      },
+      {
+        href: 'https://kirkacommunityhub.pages.dev/',
+        image: 'icon/KA.png',
+        label: 'Visit Kirka Community Hub'
+      }
+    ].forEach(link => {
+      const anchor = el('a', 'sm-sidebar-link', {
+        href: link.href,
+        target: '_blank',
+        rel: 'noopener noreferrer'
+      });
+      anchor.setAttribute('aria-label', link.label);
+      anchor.title = link.label;
+      anchor.appendChild(el('img', 'sm-sidebar-link-image', {
+        src: chrome.runtime.getURL(link.image),
+        alt: ''
+      }));
+      links.appendChild(anchor);
+    });
     sidebar.appendChild(
       el('div', 'sm-sidebar-version', {
         textContent: 'v' + version
       })
     );
+    sidebar.appendChild(links);
 
     return sidebar;
   };
