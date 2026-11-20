@@ -202,7 +202,7 @@
     backgroundsHead.append(
       el('div', 'sm-card-title', { textContent: 'Background' }),
       el('div', 'sm-card-desc', {
-        textContent: 'Choose a built-in background or upload your own image.'
+        textContent: 'Choose a built-in background or upload your own image. You can upload PNG, JPEG/JPG, WebP, or GIF (some may not work)'
       })
     );
 
