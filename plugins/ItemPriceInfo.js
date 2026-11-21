@@ -24,28 +24,28 @@
 
             return {
                 enabled:
-                    typeof stored.enabled === 'boolean' ? stored.enabled : true,
-                fate: typeof stored.fate === 'boolean' ? stored.fate : true,
-                bros: typeof stored.bros === 'boolean' ? stored.bros : true,
-                bolt: typeof stored.bolt === 'boolean' ? stored.bolt : true,
+                    typeof stored.enabled === 'boolean' ? stored.enabled : false,
+                fate: typeof stored.fate === 'boolean' ? stored.fate : false,
+                bros: typeof stored.bros === 'boolean' ? stored.bros : false,
+                bolt: typeof stored.bolt === 'boolean' ? stored.bolt : false,
                 owners:
-                    typeof stored.owners === 'boolean' ? stored.owners : true,
+                    typeof stored.owners === 'boolean' ? stored.owners : false,
                 obtain:
-                    typeof stored.obtain === 'boolean' ? stored.obtain : true,
-                date: typeof stored.date === 'boolean' ? stored.date : true,
-                rank: typeof stored.rank === 'boolean' ? stored.rank : true
+                    typeof stored.obtain === 'boolean' ? stored.obtain : false,
+                date: typeof stored.date === 'boolean' ? stored.date : false,
+                rank: typeof stored.rank === 'boolean' ? stored.rank : false
             };
         } catch (error) {
             console.warn('[ItemPriceInfo] Could not load settings:', error);
             return {
-                enabled: true,
-                fate: true,
-                bros: true,
-                bolt: true,
-                owners: true,
-                obtain: true,
-                date: true,
-                rank: true
+                enabled: false,
+                fate: false,
+                bros: false,
+                bolt: false,
+                owners: false,
+                obtain: false,
+                date: false,
+                rank: false
             };
         }
     }

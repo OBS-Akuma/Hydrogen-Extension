@@ -23,3 +23,5 @@
     </a>
   </p>
 </div>
+
+For installation and usage instructions, see [How to Download and Use the Hydrogen Extension](./HowToDownload%20and%20use%20the%20Extension.md).

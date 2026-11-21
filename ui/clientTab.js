@@ -381,6 +381,22 @@
       backgroundStatus
     );
 
+    const resetCard = el('div', 'sm-card');
+    const resetHead = el('div', 'sm-card-head');
+    resetHead.append(
+      el('div', 'sm-card-title', { textContent: 'Reset Settings' }),
+      el('div', 'sm-card-desc', {
+        textContent:
+          'Clear Hydrogen settings and turn off all plugins. This cannot be undone.'
+      })
+    );
+
+    const resetButton = el('button', 'sm-plugin-button', {
+      type: 'button',
+      textContent: 'Reset to Defaults'
+    });
+    resetCard.append(resetHead, resetButton);
+
     const exportCard = el('div', 'sm-card');
     const exportHead = el('div', 'sm-card-head');
     exportHead.append(
@@ -437,7 +453,66 @@
       textContent: 'Reload page to apply'
     });
     reloadButton.hidden = true;
-    root.append(backgrounds, exportCard, importCard, status, reloadButton);
+    root.append(
+      backgrounds,
+      resetCard,
+      exportCard,
+      importCard,
+      status,
+      reloadButton
+    );
+
+    resetButton.addEventListener('click', async () => {
+      if (!window.confirm('Reset all Hydrogen settings and turn off every plugin?')) {
+        return;
+      }
+
+      resetButton.disabled = true;
+      status.textContent = 'Resetting settings...';
+
+      try {
+        if (!window.SM.storage.saveCss('')) {
+          throw new Error('Could not clear the custom CSS.');
+        }
+
+        if (!window.SM.storage.savePos(40, 40)) {
+          throw new Error('Could not reset the menu position.');
+        }
+
+        if (!await window.SM.storage.saveStyleSettings({
+          cssUrl: '',
+          files: [],
+          interface_bounds: '',
+          interface_opacity: ''
+        })) {
+          throw new Error('Could not reset the Style tab settings.');
+        }
+
+        const defaultBackgroundSettings = {
+          selected: 'default',
+          custom: []
+        };
+        if (!await window.SM.storage.saveBackgroundSettings(
+          defaultBackgroundSettings
+        )) {
+          throw new Error('Could not reset the background settings.');
+        }
+
+        getPluginKeys().forEach(key => localStorage.removeItem(key));
+
+        backgroundSettings = defaultBackgroundSettings;
+        onBackgroundChange?.(backgroundUrl(backgroundSettings));
+        renderBackgroundOptions();
+        status.textContent =
+          'Settings reset. All plugins are off. Reload the page to apply.';
+        reloadButton.hidden = false;
+      } catch (error) {
+        console.error('[Client Settings] Reset failed:', error);
+        status.textContent = 'Reset failed: ' + error.message;
+      } finally {
+        resetButton.disabled = false;
+      }
+    });
 
     exportButton.addEventListener('click', () => {
       try {
