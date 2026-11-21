@@ -4,7 +4,8 @@
   <h1>Hydrogen Extension</h1>
   <h3>Browser Client.</h3>
 
-  <img width="901" height="559" alt="image" src="https://github.com/user-attachments/assets/1ec7b9ee-636b-4571-b79d-19624ae686bb" />
+<img width="898" height="556" alt="Menu" src="https://github.com/user-attachments/assets/431defe8-a03d-4e68-8df7-1793f07816a2" />
+
 
   <br><br>
 
