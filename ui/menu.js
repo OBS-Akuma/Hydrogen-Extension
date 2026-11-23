@@ -12,7 +12,12 @@
     const backgroundPaths = {
       default: 'Backgrounds/Default.png',
       main: 'Backgrounds/main.png',
-      halloween: 'Backgrounds/halloween.webp'
+      halloween: 'Backgrounds/halloween.webp',
+      newvsoldgen: 'Backgrounds/nvo.webp',
+      theykilledher: 'Backgrounds/Tkh.webp',
+      verclose: 'Backgrounds/Gtmts.webp',
+      ophelia: 'Backgrounds/Os.webp',
+      efk: 'Backgrounds/efk.webp'
     };
 
     function setBackground(source) {
