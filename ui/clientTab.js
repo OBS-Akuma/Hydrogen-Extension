@@ -438,7 +438,10 @@
 
       let backgroundSettings = initialBackgroundSettings ||
         window.SM.storage.loadBackgroundSettings();
-      const backgroundSelect = el('select', 'sm-css-url-input');
+      const backgroundSelect = el(
+        'select',
+        'sm-css-url-input sm-client-background-select'
+      );
       backgroundSelect.setAttribute('aria-label', 'Client background');
       const backgroundInput = el('input', 'sm-css-file-input', {
         type: 'file',

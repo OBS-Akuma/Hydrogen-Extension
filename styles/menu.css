@@ -235,18 +235,30 @@
   right: 0;
   width: 300px;
   z-index: 60;
-  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-5px) scale(0.98);
+  transform-origin: top right;
+  pointer-events: none;
   max-height: 320px;
   overflow-y: auto;
   padding: 4px;
-  background: #161616;
-  border: 1px solid var(--sm-line-strong);
-  border-radius: 8px;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.65);
+  background: linear-gradient(145deg, #1b1b1b, #121212);
+  border: 1px solid #353535;
+  border-radius: 9px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.025);
+  transition:
+    opacity 0.16s ease,
+    transform 0.2s cubic-bezier(.2,.8,.2,1),
+    visibility 0s linear 0.2s;
 }
 
 .sm-search-results.sm-open {
-  display: block;
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+  transition-delay: 0s;
 }
 
 .sm-search-item {
@@ -259,11 +271,14 @@
   cursor: pointer;
   font-size: 0.88rem;
   color: var(--sm-text);
+  transition: background 0.14s ease, color 0.14s ease, padding 0.14s ease;
 }
 
 .sm-search-item:hover,
 .sm-search-item.sm-active {
-  background: #222;
+  padding-left: 12px;
+  background: rgba(var(--sm-blue-rgb),0.11);
+  color: #fff;
 }
 
 .sm-search-item .sm-search-tab {
@@ -652,6 +667,28 @@
   transform: rotate(90deg);
 }
 
+.sm-raw-css-details,
+.sm-css-file-details {
+  interpolate-size: allow-keywords;
+}
+
+.sm-raw-css-details::details-content,
+.sm-css-file-details::details-content {
+  block-size: 0;
+  overflow: clip;
+  opacity: 0;
+  transition:
+    block-size 0.26s cubic-bezier(.2,.8,.2,1),
+    opacity 0.18s ease,
+    content-visibility 0.26s allow-discrete;
+}
+
+.sm-raw-css-details[open]::details-content,
+.sm-css-file-details[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
 /* ---------- CSS URL input ---------- */
 
 .sm-css-url-input {
@@ -681,6 +718,42 @@
 .sm-css-url-input:focus {
   border-color: rgba(var(--sm-blue-rgb),0.38);
   background: #101010;
+}
+
+.sm-client-background-select {
+  padding-right: 40px;
+  appearance: none;
+  color-scheme: dark;
+  background:
+    linear-gradient(45deg, transparent 50%, #999 50%) calc(100% - 17px) 17px / 5px 5px no-repeat,
+    linear-gradient(135deg, #999 50%, transparent 50%) calc(100% - 12px) 17px / 5px 5px no-repeat,
+    linear-gradient(#353535, #353535) calc(100% - 34px) center / 1px 55% no-repeat,
+    linear-gradient(145deg, #1b1b1b, #121212);
+  border-color: #353535;
+  border-radius: 9px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.28);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.sm-client-background-select:hover {
+  border-color: #505050;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.38);
+}
+
+.sm-client-background-select:focus {
+  border-color: rgba(var(--sm-blue-rgb),0.55);
+  box-shadow:
+    0 10px 26px rgba(0,0,0,0.38),
+    0 0 0 2px rgba(var(--sm-blue-rgb),0.12);
+}
+
+.sm-client-background-select option {
+  background: #161616;
+  color: var(--sm-text);
 }
 
 /* ---------- CSS file upload ---------- */
@@ -1336,7 +1409,17 @@
 
 .sm-example-select {
   padding: 0 12px;
+  border: 1px solid #303030;
+  border-radius: 7px;
+  background-color: #141414;
+  color-scheme: dark;
   cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sm-example-select:hover {
+  border-color: #454545;
+  background-color: #191919;
 }
 
 .sm-example-input {
@@ -1348,8 +1431,13 @@
   color: #777;
 }
 
-.sm-example-input:focus,
 .sm-example-select:focus {
+  outline: none;
+  border-color: rgba(var(--sm-blue-rgb),0.55);
+  box-shadow: 0 0 0 2px rgba(var(--sm-blue-rgb),0.12);
+}
+
+.sm-example-input:focus {
   outline: 1px solid #444;
 }
 
