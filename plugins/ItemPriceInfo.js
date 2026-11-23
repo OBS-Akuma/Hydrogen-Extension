@@ -9,7 +9,7 @@
     // ===== CONFIG =====
     const PRICE_SHEET_URL =
         'https://opensheet.elk.sh/1pxMSoaSo8FYv-OIJ26HpSj8EDy7EDRmatHyQW24o6E4/Sorted+View';
-    const RANK_API_URL = 'https://rank.daymian.xyz/api/skins/';
+    const RANK_API_URL = 'https://www.smudgy.store/api/getrankedskins?meow=';
     const DATE_API_URL = 'https://api2.kirka.io/api/skin-art';
     const OWNED_API_URL = 'https://api2.kirka.io/api/wMWnwNmW';
     const FATE_SHEET_URL =
@@ -436,34 +436,7 @@
 
         if (state.stopped || version !== state.renderVersion) return;
 
-        if (rankData?.rank) {
-            const rankEl = makeOwnedBadge('inspect-rank');
-            rankEl.append('Ranked: ');
-
-            const span = document.createElement('span');
-            span.textContent = rankData.rank;
-
-            const color = getTierColor(rankData.rank);
-            if (color) span.style.color = color;
-
-            rankEl.appendChild(span);
-
-            rankEl.style.cssText = `
-        display: block !important;
-        flex: 0 0 100% !important;
-        width: max-content !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin-top: 5px !important;
-        order: 10001 !important;
-        position: relative !important;
-        align-self: flex-start !important;
-      `;
-
-            currentRow.appendChild(rankEl);
-        }
-
-        // ===== OBTAINABLE BY + DATE: SAME LINE =====
+        // ===== OBTAINABLE BY + RANK + DATE: SAME LINE =====
         const card = modal.querySelector('.container-card') || modal;
 
         document
@@ -474,7 +447,7 @@
             ? state.obtainMap.get(normalizeName(name))
             : null;
 
-        if ((settings.date && date) || obtain) {
+        if ((settings.date && date) || obtain || rankData?.rank) {
             if (getComputedStyle(card).position === 'static') {
                 card.style.position = 'relative';
             }
@@ -509,6 +482,37 @@
           position: relative !important;
         `;
                 footer.appendChild(badge);
+            }
+
+            // ===== RANK — AFTER OBTAIN, BEFORE DATE =====
+            if (rankData?.rank) {
+                const rankEl = makeOwnedBadge('inspect-rank');
+
+                const rankPrefix =
+                    rankData.overallRank != null
+                        ? `#${rankData.overallRank}: `
+                        : 'Ranked: ';
+                rankEl.append(rankPrefix);
+
+                const span = document.createElement('span');
+                span.textContent = rankData.rank;
+
+                const color = getTierColor(rankData.rank);
+                if (color) span.style.color = color;
+
+                rankEl.appendChild(span);
+
+                rankEl.style.cssText = `
+          display: inline-flex !important;
+          flex: 0 0 auto !important;
+          width: max-content !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+          position: relative !important;
+          margin: 0 !important;
+        `;
+
+                footer.appendChild(rankEl);
             }
 
             if (settings.date && date) {
