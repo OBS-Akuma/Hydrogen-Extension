@@ -237,7 +237,12 @@
       const paths = {
         default: 'Backgrounds/Default.png',
         main: 'Backgrounds/main.png',
-        halloween: 'Backgrounds/halloween.webp'
+        halloween: 'Backgrounds/halloween.webp',
+        newvsoldgen: 'Backgrounds/nvo.webp',
+        theykilledher: 'Backgrounds/Tkh.webp',
+        verclose: 'Backgrounds/Gtmts.webp',
+        ophelia: 'Backgrounds/Os.webp',
+        efk: 'Backgrounds/efk.webp'
       };
 
       return chrome.runtime.getURL(paths[settings.selected] || paths.default);
@@ -249,7 +254,12 @@
       [
         ['default', 'Default'],
         ['main', 'Main'],
-        ['halloween', 'Halloween']
+        ['halloween', 'Halloween'],
+        ['newvsoldgen', 'New VS Oldgen'],
+        ['theykilledher', 'They killed her'],
+        ['verclose', 'Behind'],
+        ['ophelia', 'Ophelia'],
+        ['efk', 'Efk']
       ].forEach(([id, label]) => {
         backgroundSelect.appendChild(el('option', null, {
           value: id,
