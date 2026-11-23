@@ -3,7 +3,7 @@
   const FORMAT = 'Hydrogen Client Settings';
   const VERSION = 1;
   const PLUGIN_PREFIX = 'sm_plugin_';
-  const BUILTIN_BACKGROUNDS = ['default', 'main', 'halloween'];
+  const BUILTIN_BACKGROUNDS = ['default', 'main', 'halloween', 'newvsoldgen', 'theykilledher', 'behind', 'ophelia', 'efk'];
 
   function isBackgroundData(value) {
     return typeof value === 'string' &&
@@ -240,7 +240,7 @@
         halloween: 'Backgrounds/halloween.webp',
         newvsoldgen: 'Backgrounds/nvo.webp',
         theykilledher: 'Backgrounds/Tkh.webp',
-        verclose: 'Backgrounds/Gtmts.webp',
+        behind: 'Backgrounds/Gtmts.webp',
         ophelia: 'Backgrounds/Os.webp',
         efk: 'Backgrounds/efk.webp'
       };
@@ -257,7 +257,7 @@
         ['halloween', 'Halloween'],
         ['newvsoldgen', 'New VS Oldgen'],
         ['theykilledher', 'They killed her'],
-        ['verclose', 'Behind'],
+        ['behind', 'Behind'],
         ['ophelia', 'Ophelia'],
         ['efk', 'Efk']
       ].forEach(([id, label]) => {
