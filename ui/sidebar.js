@@ -83,6 +83,42 @@
       }));
       links.appendChild(anchor);
     });
+    const promo = el('a', 'sm-sidebar-promo', {
+      href: 'https://www.youtube.com/watch?v=4teeymVuHTw',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      title: 'Watch the Hydrogen Extension promotional video'
+    });
+    promo.setAttribute('aria-label', 'Watch the Hydrogen Extension promotional video');
+    promo.style.backgroundImage =
+      'linear-gradient(180deg, rgba(8, 12, 24, 0.08), rgba(8, 12, 24, 0.72)), ' +
+      `url("${chrome.runtime.getURL('Backgrounds/main.png')}")`;
+    const logo = el('img', 'sm-sidebar-promo-logo', {
+      src: chrome.runtime.getURL('icon/HYD.png'),
+      alt: ''
+    });
+    logo.draggable = false;
+    promo.appendChild(logo);
+
+    const promoContent = el('div', 'sm-sidebar-promo-content');
+    promoContent.appendChild(el('span', 'sm-sidebar-promo-label', {
+      textContent: 'Hydrogen Extension'
+    }));
+
+    const promoAction = el('span', 'sm-sidebar-promo-action');
+    promoAction.appendChild(document.createTextNode('Watch the Promo'));
+    const externalIcon = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'svg'
+    );
+    externalIcon.setAttribute('class', 'sm-sidebar-promo-external');
+    externalIcon.setAttribute('viewBox', '0 0 24 24');
+    externalIcon.setAttribute('aria-hidden', 'true');
+    externalIcon.innerHTML = '<path d="M7 17 17 7M9 7h8v8"/>';
+    promoAction.appendChild(externalIcon);
+    promoContent.appendChild(promoAction);
+    promo.appendChild(promoContent);
+    sidebar.appendChild(promo);
     sidebar.appendChild(
       el('div', 'sm-sidebar-version', {
         textContent: 'v' + version + ' Works on v0.44.4 of kirka'
