@@ -177,11 +177,15 @@
       : [];
 
     function getInterfaceSettings() {
+      const currentSettings = window.SM.storage.loadStyleSettings();
+
       return {
         interface_bounds: scaleInput.value === '100'
           ? ''
           : scaleInput.value,
-        interface_opacity: opacityInput.value
+        interface_opacity: opacityInput.value,
+        ui_accent_color: currentSettings.ui_accent_color,
+        background_opacity: currentSettings.background_opacity
       };
     }
 

@@ -7,6 +7,31 @@
   window.SM.createMenu = function (cardInfo = {}) {
     const overlay = el('div', 'sm-root sm-overlay');
     const win = el('div', 'sm-window');
+    const styleSettings = window.SM.storage.loadStyleSettings();
+
+    function setAppearance(settings) {
+      const accentColor = /^#[0-9a-f]{6}$/i.test(settings.ui_accent_color)
+        ? settings.ui_accent_color
+        : '#2bb0ff';
+      const backgroundOpacity = Number.isInteger(
+        Number(settings.background_opacity)
+      ) && Number(settings.background_opacity) >= 0 &&
+        Number(settings.background_opacity) <= 100
+        ? Number(settings.background_opacity)
+        : 35;
+      const accentRgb = [1, 3, 5]
+        .map(offset => parseInt(accentColor.slice(offset, offset + 2), 16))
+        .join(', ');
+
+      win.style.setProperty('--sm-blue', accentColor);
+      win.style.setProperty('--sm-blue-rgb', accentRgb);
+      win.style.setProperty(
+        '--sm-bg-tint',
+        `rgba(10, 10, 10, ${backgroundOpacity / 100})`
+      );
+    }
+
+    setAppearance(styleSettings);
 
     const backgroundSettings = window.SM.storage.loadBackgroundSettings();
     const backgroundPaths = {
@@ -133,7 +158,7 @@
 
     const styleTab = window.SM.buildStyleTab({
       initialCss: window.SM.storage.loadCss(),
-      initialSettings: window.SM.storage.loadStyleSettings(),
+      initialSettings: styleSettings,
       tabId: 'style',
       tabLabel: 'Style'
     });
@@ -147,7 +172,9 @@
 
     const clientTab = window.SM.buildClientTab({
       initialBackgroundSettings: backgroundSettings,
-      onBackgroundChange: setBackground
+      initialStyleSettings: styleSettings,
+      onBackgroundChange: setBackground,
+      onAppearanceChange: setAppearance
     });
     content.appendChild(clientTab.root);
 

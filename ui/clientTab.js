@@ -101,6 +101,15 @@
       !(
         style.interface_opacity === '' ||
         /^(?:100|[0-9]{1,2})$/.test(style.interface_opacity)
+      ) ||
+      !(
+        style.ui_accent_color === undefined ||
+        (typeof style.ui_accent_color === 'string' &&
+          /^#[0-9a-f]{6}$/i.test(style.ui_accent_color))
+      ) ||
+      !(
+        style.background_opacity === undefined ||
+        /^(?:100|[0-9]{1,2})$/.test(String(style.background_opacity))
       )
     ) {
       throw new Error('The exported Style tab settings are invalid.');
@@ -192,10 +201,112 @@
 
   window.SM.buildClientTab = function ({
     initialBackgroundSettings,
-    onBackgroundChange
+    initialStyleSettings,
+    onBackgroundChange,
+    onAppearanceChange
   } = {}) {
     const root = el('div', 'sm-tab-content');
     root.id = 'tab-client';
+
+    let styleSettings = initialStyleSettings ||
+      window.SM.storage.loadStyleSettings();
+    const appearanceCard = el('div', 'sm-card');
+    appearanceCard.dataset.hydrogenSetting = 'ui-appearance';
+    const appearanceHead = el('div', 'sm-card-head');
+    appearanceHead.append(
+      el('div', 'sm-card-title', { textContent: 'UI Color & Opacity' }),
+      el('div', 'sm-card-desc', {
+        textContent:
+          'Choose the accent color and adjust the opacity of the background tint.'
+      })
+    );
+
+    const accentColorInput = el('input', 'sm-client-color-input', {
+      type: 'color',
+      value: styleSettings.ui_accent_color
+    });
+    accentColorInput.setAttribute('aria-label', 'UI accent color');
+    const colorRow = el('label', 'sm-client-appearance-row');
+    colorRow.append(
+      el('span', 'sm-client-appearance-label', {
+        textContent: 'Accent Color'
+      }),
+      accentColorInput
+    );
+
+    const backgroundOpacityInput = el(
+      'input',
+      'sm-client-opacity-slider',
+      {
+        type: 'range',
+        min: '0',
+        max: '100',
+        step: '1',
+        value: styleSettings.background_opacity
+      }
+    );
+    backgroundOpacityInput.setAttribute(
+      'aria-label',
+      'Background tint opacity'
+    );
+    const opacityValue = el('span', 'sm-client-opacity-value', {
+      textContent: styleSettings.background_opacity + '%'
+    });
+    const opacityRow = el('label', 'sm-client-appearance-row');
+    opacityRow.append(
+      el('span', 'sm-client-appearance-label', {
+        textContent: 'Background Tint Opacity'
+      }),
+      backgroundOpacityInput,
+      opacityValue
+    );
+    const appearanceStatus = el('div', 'sm-plugin-status');
+    appearanceStatus.setAttribute('role', 'status');
+    appearanceStatus.setAttribute('aria-live', 'polite');
+    appearanceCard.append(
+      appearanceHead,
+      colorRow,
+      opacityRow,
+      appearanceStatus
+    );
+
+    function getAppearanceSettings() {
+      return {
+        ...window.SM.storage.loadStyleSettings(),
+        ui_accent_color: accentColorInput.value,
+        background_opacity: backgroundOpacityInput.value
+      };
+    }
+
+    function previewAppearance() {
+      opacityValue.textContent = backgroundOpacityInput.value + '%';
+      onAppearanceChange?.(getAppearanceSettings());
+    }
+
+    async function saveAppearance() {
+      const currentSettings = window.SM.storage.loadStyleSettings();
+      const nextSettings = getAppearanceSettings();
+
+      if (!await window.SM.storage.saveStyleSettings(nextSettings)) {
+        styleSettings = currentSettings;
+        accentColorInput.value = styleSettings.ui_accent_color;
+        backgroundOpacityInput.value = styleSettings.background_opacity;
+        opacityValue.textContent = styleSettings.background_opacity + '%';
+        onAppearanceChange?.(styleSettings);
+        appearanceStatus.textContent =
+          'Could not save appearance settings. Check available browser storage.';
+        return;
+      }
+
+      styleSettings = window.SM.storage.loadStyleSettings();
+      onAppearanceChange?.(styleSettings);
+      appearanceStatus.textContent = 'Appearance saved.';
+    }
+
+    accentColorInput.addEventListener('input', previewAppearance);
+    accentColorInput.addEventListener('change', saveAppearance);
+    backgroundOpacityInput.addEventListener('input', previewAppearance);
+    backgroundOpacityInput.addEventListener('change', saveAppearance);
 
     const backgrounds = el('div', 'sm-card');
     const backgroundsHead = el('div', 'sm-card-head');
@@ -464,6 +575,7 @@
     });
     reloadButton.hidden = true;
     root.append(
+      appearanceCard,
       backgrounds,
       resetCard,
       exportCard,
@@ -493,7 +605,9 @@
           cssUrl: '',
           files: [],
           interface_bounds: '',
-          interface_opacity: ''
+          interface_opacity: '',
+          ui_accent_color: '#2bb0ff',
+          background_opacity: '35'
         })) {
           throw new Error('Could not reset the Style tab settings.');
         }
@@ -511,7 +625,12 @@
         getPluginKeys().forEach(key => localStorage.removeItem(key));
 
         backgroundSettings = defaultBackgroundSettings;
+        styleSettings = window.SM.storage.loadStyleSettings();
+        accentColorInput.value = styleSettings.ui_accent_color;
+        backgroundOpacityInput.value = styleSettings.background_opacity;
+        opacityValue.textContent = styleSettings.background_opacity + '%';
         onBackgroundChange?.(backgroundUrl(backgroundSettings));
+        onAppearanceChange?.(styleSettings);
         renderBackgroundOptions();
         status.textContent =
           'Settings reset. All plugins are off. Reload the page to apply.';
@@ -566,6 +685,12 @@
         if (!await window.SM.storage.saveStyleSettings(data.style)) {
           throw new Error('Could not save the Style tab settings.');
         }
+
+        styleSettings = window.SM.storage.loadStyleSettings();
+        accentColorInput.value = styleSettings.ui_accent_color;
+        backgroundOpacityInput.value = styleSettings.background_opacity;
+        opacityValue.textContent = styleSettings.background_opacity + '%';
+        onAppearanceChange?.(styleSettings);
 
         if (!await window.SM.storage.saveBackgroundSettings(data.backgrounds)) {
           throw new Error('Could not save the background settings.');
@@ -625,10 +750,21 @@
       id: 'client-settings',
       label: 'Settings',
       title: 'Client Settings',
-      desc: 'Import or export Hydrogen client settings',
+      desc: 'Import or export Hydrogen client settings, change UI color and opacity',
       item: {
         tab: 'client',
         selector: '#tab-client'
+      }
+    });
+
+    window.SM.searchIndex.push({
+      id: 'ui-appearance',
+      label: 'Settings',
+      title: 'UI Color & Opacity',
+      desc: 'Change the accent color and background tint opacity',
+      item: {
+        tab: 'client',
+        selector: '#tab-client [data-hydrogen-setting="ui-appearance"]'
       }
     });
 
