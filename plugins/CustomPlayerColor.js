@@ -7,8 +7,8 @@
 
     const PLUGIN_ID = 'custom-player-color';
 
-    const DEFAULT_HEAD = '#ff0000';
-    const DEFAULT_BODY = '#fff700';
+    const DEFAULT_HEAD = '#E100E1';
+    const DEFAULT_BODY = '#000000';
 
     function loadSettings() {
         try {
