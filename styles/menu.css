@@ -1,9 +1,9 @@
 
 /* ============================================================
-   Hydrogen Style Menu — all menu chrome lives here.
-   User-injected CSS does NOT go through this file; it goes
-   through lib/injector.js into a separate <style> tag.
-   ============================================================ */
+  Hydrogen Style Menu — all menu chrome lives here.
+  User-injected CSS does NOT go through this file; it goes
+  through lib/injector.js into a separate <style> tag.
+  ============================================================ */
 
 .sm-root {
   --sm-bg0: #0a0a0a;
@@ -15,6 +15,7 @@
   --sm-text-muted: #858585;
   --sm-blue: #2bb0ff;
   --sm-blue-rgb: 43, 176, 255;
+  --sm-card-opacity: 0.6;
   font-family: "Rubik","Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 
@@ -67,7 +68,7 @@
 .sm-window {
   position: fixed;
   width: 1000px;
-  height: 620px;
+  height: 660px;
   max-width: 96vw;
   max-height: 94vh;
   display: flex;
@@ -402,7 +403,7 @@
 .sm-card {
   display: flex;
   flex-direction: column;
-  background: rgba(21,21,21,0.6);
+  background: rgba(21,21,21,var(--sm-card-opacity));
   border-radius: 8px;
   padding: 16px 18px;
   margin-bottom: 14px;
@@ -581,20 +582,26 @@
   font-size: 0.88rem;
 }
 
-.sm-client-color-input {
-  width: 48px;
-  height: 32px;
-  padding: 3px;
-  border: 1px solid var(--sm-line-strong);
-  border-radius: 6px;
-  background: var(--sm-field);
-  cursor: pointer;
-}
-
 .sm-client-opacity-slider {
   flex: 1;
   min-width: 80px;
   accent-color: var(--sm-blue);
+}
+
+.sm-client-background-opacity-slider {
+  --sm-slider-default-stop: 35%;
+}
+
+.sm-client-card-opacity-slider {
+  --sm-slider-default-stop: 60%;
+}
+
+.sm-client-menu-width-slider {
+  --sm-slider-default-stop: 100%;
+}
+
+.sm-client-menu-height-slider {
+  --sm-slider-default-stop: 43.333333%;
 }
 
 .sm-client-opacity-value {
@@ -836,8 +843,8 @@
 }
 
 /* ============================================================
-   Custom Player Color Plugin
-   ============================================================ */
+  Custom Player Color Plugin
+  ============================================================ */
 
 .sm-plugin-heading {
   display: flex;
@@ -1109,10 +1116,18 @@
 .sm-example-slider::-webkit-slider-runnable-track {
   height: 28px;
   background: #151515;
+  border-bottom: 1px solid #454545;
 }
 
 .sm-interface-scale-slider::-webkit-slider-runnable-track {
   background:
+    linear-gradient(
+      to right,
+      transparent calc(var(--sm-slider-default-stop, 200%) - 1px),
+      #2bb0ff calc(var(--sm-slider-default-stop, 200%) - 1px)
+        calc(var(--sm-slider-default-stop, 200%) + 1px),
+      transparent calc(var(--sm-slider-default-stop, 200%) + 1px)
+    ),
     linear-gradient(to right, #454545 1px, transparent 1px),
     linear-gradient(
       to right,
@@ -1127,6 +1142,13 @@
 
 .sm-interface-opacity-slider::-webkit-slider-runnable-track {
   background:
+    linear-gradient(
+      to right,
+      transparent calc(var(--sm-slider-default-stop, 200%) - 1px),
+      #2bb0ff calc(var(--sm-slider-default-stop, 200%) - 1px)
+        calc(var(--sm-slider-default-stop, 200%) + 1px),
+      transparent calc(var(--sm-slider-default-stop, 200%) + 1px)
+    ),
     linear-gradient(to right, #454545 1px, transparent 1px),
     linear-gradient(
       to right,
@@ -1158,10 +1180,18 @@
 .sm-example-slider::-moz-range-track {
   height: 28px;
   background: #151515;
+  border-bottom: 1px solid #454545;
 }
 
 .sm-interface-scale-slider::-moz-range-track {
   background:
+    linear-gradient(
+      to right,
+      transparent calc(var(--sm-slider-default-stop, 200%) - 1px),
+      #2bb0ff calc(var(--sm-slider-default-stop, 200%) - 1px)
+        calc(var(--sm-slider-default-stop, 200%) + 1px),
+      transparent calc(var(--sm-slider-default-stop, 200%) + 1px)
+    ),
     linear-gradient(to right, #454545 1px, transparent 1px),
     linear-gradient(
       to right,
@@ -1176,6 +1206,13 @@
 
 .sm-interface-opacity-slider::-moz-range-track {
   background:
+    linear-gradient(
+      to right,
+      transparent calc(var(--sm-slider-default-stop, 200%) - 1px),
+      #2bb0ff calc(var(--sm-slider-default-stop, 200%) - 1px)
+        calc(var(--sm-slider-default-stop, 200%) + 1px),
+      transparent calc(var(--sm-slider-default-stop, 200%) + 1px)
+    ),
     linear-gradient(to right, #454545 1px, transparent 1px),
     linear-gradient(
       to right,

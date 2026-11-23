@@ -10,21 +10,28 @@
     const styleSettings = window.SM.storage.loadStyleSettings();
 
     function setAppearance(settings) {
-      const accentColor = /^#[0-9a-f]{6}$/i.test(settings.ui_accent_color)
-        ? settings.ui_accent_color
-        : '#2bb0ff';
       const backgroundOpacity = Number.isInteger(
         Number(settings.background_opacity)
       ) && Number(settings.background_opacity) >= 0 &&
         Number(settings.background_opacity) <= 100
         ? Number(settings.background_opacity)
         : 35;
-      const accentRgb = [1, 3, 5]
-        .map(offset => parseInt(accentColor.slice(offset, offset + 2), 16))
-        .join(', ');
+      const menuWidth = Number(settings.menu_width) >= 810 &&
+        Number(settings.menu_width) <= 1000
+        ? Number(settings.menu_width)
+        : 1000;
+      const menuHeight = Number(settings.menu_height) >= 400 &&
+        Number(settings.menu_height) <= 1000
+        ? Number(settings.menu_height)
+        : 660;
+      const cardOpacity = Number(settings.card_opacity) >= 0 &&
+        Number(settings.card_opacity) <= 100
+        ? Number(settings.card_opacity)
+        : 60;
 
-      win.style.setProperty('--sm-blue', accentColor);
-      win.style.setProperty('--sm-blue-rgb', accentRgb);
+      win.style.width = menuWidth + 'px';
+      win.style.height = menuHeight + 'px';
+      win.style.setProperty('--sm-card-opacity', String(cardOpacity / 100));
       win.style.setProperty(
         '--sm-bg-tint',
         `rgba(10, 10, 10, ${backgroundOpacity / 100})`

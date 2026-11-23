@@ -184,8 +184,10 @@
           ? ''
           : scaleInput.value,
         interface_opacity: opacityInput.value,
-        ui_accent_color: currentSettings.ui_accent_color,
-        background_opacity: currentSettings.background_opacity
+        background_opacity: currentSettings.background_opacity,
+        menu_width: currentSettings.menu_width,
+        menu_height: currentSettings.menu_height,
+        card_opacity: currentSettings.card_opacity
       };
     }
 

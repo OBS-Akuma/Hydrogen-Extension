@@ -1,5 +1,4 @@
-
- // Top bar: title (left), search slot + close button (right).
+// Top bar: title (left), search slot + close button (right).
 // The search box is inserted by menu.js before the close button.
 (function () {
   const el = window.SM.el;
@@ -14,6 +13,22 @@
       '</svg>';
   }
 
+  // Inject spin styles once.
+  if (!document.getElementById('sm-spin-style')) {
+    const style = document.createElement('style');
+    style.id = 'sm-spin-style';
+    style.textContent = `
+      .sm-logo {
+        transition: transform 0.6s ease;
+        transform-origin: center center;
+      }
+      .sm-logo:hover {
+        transform: rotate(360deg);
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   window.SM.buildTopbar = function ({ onClose }) {
     const bar = el('div', 'sm-topbar');
 
@@ -25,8 +40,9 @@
     const logo = document.createElement('img');
     logo.src = chrome.runtime.getURL('icon/HYD.png');
     logo.alt = 'Hydrogen';
-    logo.style.width = '24px';
-    logo.style.height = '24px';
+    logo.className = 'sm-logo';
+    logo.style.width = '36px';
+    logo.style.height = '36px';
     logo.style.objectFit = 'contain';
     logo.style.marginRight = '8px';
     logo.style.verticalAlign = 'middle';
