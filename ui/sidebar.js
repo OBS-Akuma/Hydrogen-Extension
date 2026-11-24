@@ -2,6 +2,66 @@
 (function () {
   const el = window.SM.el;
 
+  function createExternalIcon() {
+    const icon = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'svg'
+    );
+    icon.setAttribute('class', 'sm-sidebar-promo-external');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.innerHTML = '<path d="M7 17 17 7M9 7h8v8"/>';
+    return icon;
+  }
+
+  function checkForUpdate(promo, versionLabel, version) {
+    chrome.runtime.sendMessage({ type: 'hydrogen.checkUpdate' })
+      .then(result => {
+        if (result?.error) {
+          console.warn('[SM] Update check failed:', result.error);
+          return;
+        }
+
+        if (typeof result?.wov === 'string') {
+          versionLabel.textContent =
+            `v${version} Works on v${result.wov} of kirka`;
+        }
+
+        if (!result?.available) return;
+
+        const updateLink = el('a', 'sm-sidebar-update', {
+          href: 'chrome://extensions',
+          title: 'Open Chrome Extensions to update Hydrogen'
+        });
+        updateLink.setAttribute('aria-label', 'Update Available');
+
+        const updateAction = el('span', 'sm-sidebar-promo-action');
+        updateAction.appendChild(document.createTextNode('Update Available'));
+        updateAction.appendChild(createExternalIcon());
+        updateLink.appendChild(updateAction);
+        updateLink.addEventListener('click', event => {
+          event.preventDefault();
+          chrome.runtime.sendMessage({ type: 'hydrogen.openExtensions' })
+            .then(openResult => {
+              if (openResult?.error) {
+                console.error(
+                  '[SM] Could not open the extensions page:',
+                  openResult.error
+                );
+              }
+            })
+            .catch(error => {
+              console.error('[SM] Could not open the extensions page:', error);
+            });
+        });
+
+        promo.insertAdjacentElement('afterend', updateLink);
+      })
+      .catch(error => {
+        console.warn('[SM] Update check failed:', error);
+      });
+  }
+
   const NAV_GROUPS = [
     {
       title: 'Injectors',
@@ -107,23 +167,15 @@
 
     const promoAction = el('span', 'sm-sidebar-promo-action');
     promoAction.appendChild(document.createTextNode('Watch the Promo'));
-    const externalIcon = document.createElementNS(
-      'http://www.w3.org/2000/svg',
-      'svg'
-    );
-    externalIcon.setAttribute('class', 'sm-sidebar-promo-external');
-    externalIcon.setAttribute('viewBox', '0 0 24 24');
-    externalIcon.setAttribute('aria-hidden', 'true');
-    externalIcon.innerHTML = '<path d="M7 17 17 7M9 7h8v8"/>';
-    promoAction.appendChild(externalIcon);
+    promoAction.appendChild(createExternalIcon());
     promoContent.appendChild(promoAction);
     promo.appendChild(promoContent);
     sidebar.appendChild(promo);
-    sidebar.appendChild(
-      el('div', 'sm-sidebar-version', {
-        textContent: 'v' + version + ' Works on v0.44.4 of kirka'
-      })
-    );
+    const versionLabel = el('div', 'sm-sidebar-version', {
+      textContent: 'v' + version + ' Works on v0.44.4 of kirka'
+    });
+    checkForUpdate(promo, versionLabel, version);
+    sidebar.appendChild(versionLabel);
     sidebar.appendChild(links);
 
     return sidebar;

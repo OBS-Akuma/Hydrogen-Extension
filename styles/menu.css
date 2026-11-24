@@ -413,6 +413,21 @@
   stroke-linejoin: round;
 }
 
+.sm-sidebar-update {
+  display: flex;
+  align-self: flex-end;
+  justify-content: center;
+  width: 100%;
+  margin: 0 0 8px;
+  text-decoration: none;
+}
+
+.sm-sidebar-update:focus-visible {
+  outline: 2px solid var(--sm-blue);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 .sm-sidebar-links {
   display: flex;
   align-items: center;

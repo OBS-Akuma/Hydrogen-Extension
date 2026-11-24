@@ -21,6 +21,14 @@
     }
   },
 
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "host_permissions": [
+    "https://raw.githubusercontent.com/*"
+  ],
+
   "web_accessible_resources": [
     {
       "resources": [
