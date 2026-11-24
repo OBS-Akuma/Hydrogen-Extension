@@ -2,7 +2,7 @@
 {
   "manifest_version": 3,
   "name": "Hydrogen",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Browser Client",
 
   "icons": {
