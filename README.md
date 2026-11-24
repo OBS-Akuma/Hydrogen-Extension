@@ -2,7 +2,6 @@
   <img src="https://raw.githubusercontent.com/OBS-Akuma/Ubuntu-client/refs/heads/main/assets/HYD.png" width="128" height="128" />
 
   <h1>Hydrogen Extension</h1>
-  <h3>Browser Client.</h3>
 
 <img width="898" height="556" alt="Menu" src="https://github.com/user-attachments/assets/431defe8-a03d-4e68-8df7-1793f07816a2" />
 
