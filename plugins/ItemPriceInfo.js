@@ -17,6 +17,10 @@
     const BROS_SHEET_URL =
         'https://opensheet.elk.sh/1tzHjKpu2gYlHoCePjp6bFbKBGvZpwDjiRzT9ZUfNwbY/4';
 
+    // Internal dataset keys — never reuse the site's own `data-original-text`
+    const DS_ORIGINAL = 'ipiOriginal';
+    const DS_MODIFIED = 'ipiModified';
+
     function loadSettings() {
         try {
             const raw = localStorage.getItem('sm_plugin_' + PLUGIN_ID);
@@ -73,9 +77,7 @@
 
     // ===== HELPERS =====
     function normalizeName(name) {
-        return String(name || '')
-            .trim()
-            .toLowerCase();
+        return String(name || '').trim().toLowerCase();
     }
 
     function parseValue(raw) {
@@ -299,37 +301,47 @@
     function makeOwnedBadge(className = '') {
         const el = document.createElement('div');
 
-        el.setAttribute('data-v-5104d13a', '');
-        el.setAttribute('data-v-a1eaaeac', '');
+        el.setAttribute('data-v-871dc80c', '');
+        el.setAttribute('data-v-7ed330bb', '');
         el.className = `owned ${className}`.trim();
 
         return el;
     }
 
     // ===== OWNERS COUNT: PLAIN TEXT =====
+    // New DOM: <div class="owned" data-original-text="79 units">79 units</div>
+    // We respect the site's data-original-text and keep our own key separately.
+    function getOwnedOriginalText(ownedEl) {
+        // Prefer the site's own attribute if it exists and looks valid
+        const native = ownedEl.getAttribute('data-original-text');
+        if (native && native.trim()) return native.trim();
+
+        // Otherwise fall back to our captured copy or current text
+        if (ownedEl.dataset[DS_ORIGINAL]) return ownedEl.dataset[DS_ORIGINAL];
+
+        return ownedEl.textContent.trim();
+    }
+
     function updateOwnedCount(ownedEl, name) {
         if (!ownedEl) return;
 
-        if (!ownedEl.dataset.originalText) {
-            ownedEl.dataset.originalText = ownedEl.textContent.trim();
+        // Capture the pristine text once
+        if (!ownedEl.dataset[DS_ORIGINAL]) {
+            ownedEl.dataset[DS_ORIGINAL] = getOwnedOriginalText(ownedEl);
         }
 
         if (!settings.owners) {
-            ownedEl.textContent =
-                ownedEl.dataset.originalText || ownedEl.textContent;
-            delete ownedEl.dataset.ownedModified;
-            delete ownedEl.dataset.originalText;
+            restoreOwnedCount(ownedEl);
             return;
         }
 
         const owners = state.ownedMap.get(normalizeName(name));
-        const original = ownedEl.dataset.originalText;
+        const original = ownedEl.dataset[DS_ORIGINAL];
         const match = original.match(/^(\d+)(.*)$/);
 
         if (!match || owners === undefined) {
-            if (ownedEl.dataset.ownedModified) {
-                ownedEl.textContent = original;
-                delete ownedEl.dataset.ownedModified;
+            if (ownedEl.dataset[DS_MODIFIED]) {
+                restoreOwnedCount(ownedEl);
             }
             return;
         }
@@ -337,7 +349,22 @@
         const [, units, rest] = match;
 
         ownedEl.textContent = `${units}/${owners} ${rest.trim()}`;
-        ownedEl.dataset.ownedModified = '1';
+        ownedEl.dataset[DS_MODIFIED] = '1';
+    }
+
+    function restoreOwnedCount(ownedEl) {
+        if (!ownedEl) return;
+
+        const original = ownedEl.dataset[DS_ORIGINAL];
+        if (original !== undefined) {
+            ownedEl.textContent = original;
+        } else {
+            // No captured original — fall back to the site's attribute if present
+            const native = ownedEl.getAttribute('data-original-text');
+            if (native) ownedEl.textContent = native;
+        }
+
+        delete ownedEl.dataset[DS_MODIFIED];
     }
 
     // ===== CLEANUP GENERATED BADGES =====
@@ -354,10 +381,8 @@
             '.units-row > .owned:not(.inspect-value):not(.inspect-fate):not(.inspect-bros)'
         );
 
-        if (ownedEl?.dataset.ownedModified) {
-            ownedEl.textContent =
-                ownedEl.dataset.originalText || ownedEl.textContent;
-            delete ownedEl.dataset.ownedModified;
+        if (ownedEl?.dataset[DS_MODIFIED]) {
+            restoreOwnedCount(ownedEl);
         }
     }
 
@@ -645,14 +670,9 @@
             .forEach((el) => el.remove());
 
         document
-            .querySelectorAll(
-                '#inspect-modal .name .owned[data-owned-modified]'
-            )
+            .querySelectorAll('#inspect-modal .name .owned[data-ipi-modified]')
             .forEach((el) => {
-                el.textContent = el.dataset.originalText || el.textContent;
-
-                delete el.dataset.ownedModified;
-                delete el.dataset.originalText;
+                restoreOwnedCount(el);
             });
 
         console.log('[ItemPriceInfo] stopped');
