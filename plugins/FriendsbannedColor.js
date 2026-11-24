@@ -5,8 +5,11 @@
     window.__HYDROGEN_FRIENDS_BANNED_COLOR__ = true;
 
     const PLUGIN_ID = 'friends-banned-color';
-    const API_URL = 'https://api2.kirka.io/api/WwMWm';
-    const TARGET_ROLE = 'wNmWnMwW';
+    const API_URL = 'https://api2.kirka.io/api/WwWMnNm';
+    const TARGET_ROLE = 'wwWMWn';
+
+    // How long a fetched friends list stays fresh before a re-fetch is allowed
+    const CACHE_TTL_MS = 60_000;
 
     function loadEnabled() {
         try {
@@ -24,6 +27,10 @@
 
     let enabled = loadEnabled();
     let filteredFriends = [];
+    let filteredFriendsSet = new Set();
+    let lastFetchTime = 0;
+    let fetchInFlight = null;
+
     let friendObserver = null;
     let urlObserver = null;
     let settingsObserver = null;
@@ -52,35 +59,85 @@
         return element;
     }
 
-    async function fetchFriendsList() {
-        const token = localStorage.getItem('token');
+    // ------------------------------------------------------------------
+    // Friends panel detection
+    // ------------------------------------------------------------------
 
-        if (!token) return;
+    /**
+     * Returns the friends panel container if it's currently mounted/visible.
+     * Adjust the selector if your build uses a different container class.
+     */
+    function getFriendsPanel() {
+        // The .friend elements live inside this container in the Kirka UI.
+        // We use the first .friend's closest scroll container as the anchor.
+        const firstFriend = document.querySelector('.friend[data-v-97c118c6]');
+        if (!firstFriend) return null;
 
-        try {
-            const response = await fetch(API_URL, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            });
-
-            if (!response.ok) {
-                console.warn(
-                    '[FriendsBannedColor] Friends request failed:',
-                    response.status
-                );
-                return;
-            }
-
-            const data = await response.json();
-
-            filteredFriends = (data.wnMNWm || [])
-                .filter(friend => friend.WwMWmnwN === TARGET_ROLE)
-                .map(friend => friend.WwMWmn);
-        } catch (error) {
-            console.error('[FriendsBannedColor] Friends request failed:', error);
-        }
+        // Walk up to a reasonable panel boundary (the list wrapper).
+        // Falling back to firstFriend.parentElement is safe and narrow.
+        return firstFriend.closest('.friends-list, .friends, .list') ||
+            firstFriend.parentElement;
     }
+
+    // ------------------------------------------------------------------
+    // API fetch (cached + de-duplicated)
+    // ------------------------------------------------------------------
+
+    function isCacheFresh() {
+        return (
+            filteredFriends.length > 0 &&
+            Date.now() - lastFetchTime < CACHE_TTL_MS
+        );
+    }
+
+    async function fetchFriendsList({ force = false } = {}) {
+        if (!force && isCacheFresh()) return filteredFriends;
+        if (fetchInFlight) return fetchInFlight;
+
+        const token = localStorage.getItem('token');
+        if (!token) return filteredFriends;
+
+        fetchInFlight = (async () => {
+            try {
+                const response = await fetch(API_URL, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    console.warn(
+                        '[FriendsBannedColor] Friends request failed:',
+                        response.status
+                    );
+                    return filteredFriends;
+                }
+
+                const data = await response.json();
+
+                filteredFriends = (data.wnwWmWNM || [])
+                    .filter(friend => friend.WwWMnmNw === TARGET_ROLE)
+                    .map(friend => friend.WwWMnmwN);
+
+                filteredFriendsSet = new Set(filteredFriends);
+                lastFetchTime = Date.now();
+
+                return filteredFriends;
+            } catch (error) {
+                console.error(
+                    '[FriendsBannedColor] Friends request failed:',
+                    error
+                );
+                return filteredFriends;
+            } finally {
+                fetchInFlight = null;
+            }
+        })();
+
+        return fetchInFlight;
+    }
+
+    // ------------------------------------------------------------------
+    // Styling
+    // ------------------------------------------------------------------
 
     function restoreStyles() {
         styledFriends.forEach((original, nickname) => {
@@ -96,7 +153,7 @@
             '.friend[data-v-97c118c6] .nickname'
         ).forEach(nickname => {
             const username = nickname.textContent.trim();
-            const matched = filteredFriends.includes(username);
+            const matched = filteredFriendsSet.has(username);
 
             if (matched) {
                 if (!styledFriends.has(nickname)) {
@@ -106,30 +163,47 @@
                     });
                 }
 
-                nickname.style.color = 'var(--red-3)';
-                nickname.style.textDecoration = 'line-through';
+                // Only write when the style actually differs — avoids
+                // re-triggering the MutationObserver.
+                if (nickname.style.color !== 'var(--red-3)') {
+                    nickname.style.color = 'var(--red-3)';
+                }
+                if (nickname.style.textDecoration !== 'line-through') {
+                    nickname.style.textDecoration = 'line-through';
+                }
             } else if (styledFriends.has(nickname)) {
                 const original = styledFriends.get(nickname);
 
-                nickname.style.color = original.color;
-                nickname.style.textDecoration = original.decoration;
+                if (nickname.style.color !== original.color) {
+                    nickname.style.color = original.color;
+                }
+                if (nickname.style.textDecoration !== original.decoration) {
+                    nickname.style.textDecoration = original.decoration;
+                }
 
                 styledFriends.delete(nickname);
             }
         });
     }
 
-    async function refresh() {
+    // ------------------------------------------------------------------
+    // Refresh orchestration
+    // ------------------------------------------------------------------
+
+    async function refresh({ force = false } = {}) {
         if (!enabled) return;
 
-        await fetchFriendsList();
+        // Don't hit the API at all if the friends panel isn't on screen.
+        if (!getFriendsPanel()) return;
+
+        await fetchFriendsList({ force });
 
         if (enabled) applyStyles();
     }
 
     function scheduleRefresh() {
         clearTimeout(refreshTimeout);
-        refreshTimeout = setTimeout(refresh, 300);
+        refreshTimeout = setTimeout(() => refresh(), 300);
     }
 
     function setEnabled(value) {
@@ -139,11 +213,15 @@
         saveEnabled();
 
         if (enabled) {
-            refresh();
+            refresh({ force: true });
         } else {
             restoreStyles();
         }
     }
+
+    // ------------------------------------------------------------------
+    // Toggle control
+    // ------------------------------------------------------------------
 
     function makeToggleControl() {
         const root = el('div', 'sm-plugin-toggle-control');
@@ -245,6 +323,10 @@
         return true;
     }
 
+    // ------------------------------------------------------------------
+    // Observers
+    // ------------------------------------------------------------------
+
     function start() {
         addSettings();
 
@@ -262,24 +344,84 @@
             });
         }
 
-        friendObserver = new MutationObserver(scheduleRefresh);
-        friendObserver.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        // Watch ONLY the friends panel, not the whole body.
+        // Re-resolve the panel target each time the observer is (re)attached,
+        // because the friends list may be unmounted/remounted on navigation.
+        function observeFriendsPanel() {
+            const panel = getFriendsPanel();
+            if (!panel) return;
 
+            friendObserver = new MutationObserver(mutations => {
+                // Ignore mutations that are only our own style writes.
+                const relevant = mutations.some(m => {
+                    const t = m.target;
+                    if (!(t instanceof Element)) return true;
+                    if (t.classList?.contains('nickname')) return false;
+                    return true;
+                });
+
+                if (relevant) scheduleRefresh();
+            });
+
+            friendObserver.observe(panel, {
+                childList: true,
+                subtree: true
+            });
+        }
+
+        observeFriendsPanel();
+
+        // Route changes: re-check for the friends panel and re-attach the
+        // observer, but only refresh when the panel is actually visible.
         urlObserver = new MutationObserver(() => {
-            if (location.href !== lastUrl) {
-                lastUrl = location.href;
-                setTimeout(refresh, 500);
+            if (location.href === lastUrl) return;
+
+            lastUrl = location.href;
+
+            if (friendObserver) {
+                friendObserver.disconnect();
+                friendObserver = null;
             }
+
+            // Give the SPA a moment to swap the route, then re-attach.
+            setTimeout(() => {
+                observeFriendsPanel();
+                scheduleRefresh();
+            }, 500);
         });
-        urlObserver.observe(document, {
+
+        urlObserver.observe(document.documentElement, {
             childList: true,
             subtree: true
         });
 
-        setInterval(refresh, 5000);
+        // If the friends list mounts lazily (e.g. user opens the tab after
+        // page load), the urlObserver won't catch it. A lightweight poll
+        // that does NOT call the API — it only re-attaches the observer
+        // when the panel appears — handles that case.
+        const panelWatchInterval = setInterval(() => {
+            if (!getFriendsPanel()) return;
+            if (friendObserver) return;
+
+            observeFriendsPanel();
+            scheduleRefresh();
+        }, 1000);
+
+        // Ensure the interval is torn down if the plugin is disabled.
+        const originalSetEnabled = setEnabled;
+        setEnabled = function (value) {
+            if (!value) {
+                clearInterval(panelWatchInterval);
+                if (friendObserver) {
+                    friendObserver.disconnect();
+                    friendObserver = null;
+                }
+            } else if (!friendObserver) {
+                observeFriendsPanel();
+            }
+            originalSetEnabled(value);
+        };
+
         refresh();
     }
 
