@@ -1,4 +1,3 @@
-
 (() => {
     'use strict';
 
@@ -9,6 +8,12 @@
 
     const DEFAULT_HEAD = '#E100E1';
     const DEFAULT_BODY = '#000000';
+
+    // Skin texture dimensions supported by the game / CSL hook.
+    // Matches the sizes handled in the "Custom Skin Link" userscript.
+    const SKIN_SIZE = 128; // 128x128 support (was 64x64)
+    const VALID_WIDTHS = [64, 42, 128];
+    const VALID_HEIGHTS = [64, 42, 32, 128];
 
     function loadSettings() {
         try {
@@ -59,28 +64,40 @@
 
     function createSkinTexture(head, body) {
         const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        canvas.width = SKIN_SIZE;
+        canvas.height = SKIN_SIZE;
 
         const ctx = canvas.getContext('2d');
 
+        // Body occupies the bottom half; head the top half.
+        // Scaled proportionally so 128x128 layouts stay aligned.
+        const half = SKIN_SIZE / 2;
+
         ctx.fillStyle = body;
-        ctx.fillRect(0, 32, 64, 32);
+        ctx.fillRect(0, half, SKIN_SIZE, half);
 
         ctx.fillStyle = head;
-        ctx.fillRect(0, 0, 64, 32);
+        ctx.fillRect(0, 0, SKIN_SIZE, half);
 
         return canvas.toDataURL();
     }
 
     let playerTexture = createSkinTexture(headColor, bodyColor);
 
+    function isValidSkinSize(width, height) {
+        return (
+            VALID_WIDTHS.includes(width) &&
+            VALID_HEIGHTS.includes(height)
+        );
+    }
+
     function replaceTexture(map) {
         if (!enabled || !map || !map.image) return;
 
         const image = map.image;
 
-        if (image.width !== 64 || image.height !== 64) return;
+        // Accept all valid skin texture sizes (64x64, 64x32, 42x42, 42x32, 128x128)
+        if (!isValidSkinSize(image.width, image.height)) return;
 
         if (!trackedMaps.has(map)) {
             trackedMaps.set(map, {
