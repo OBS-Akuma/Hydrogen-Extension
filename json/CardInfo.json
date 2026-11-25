@@ -9,6 +9,7 @@
   "Map & Skybox Textures": "Turn it on to browse and apply custom map textures and skyboxes.",
   "Skin Texture Downloader": "Turn it on to add a texture download button to skin cards. Click TEXTURE to download the original texture.",
   "Item Price Info": "Turn it on to display skin values, owner counts, obtain method, release date, and rank in the skin inspect window. Use the settings to choose which details appear.",
+  "Inventory Presets": "Save your currently equipped items as a preset, then equip, rename, or remove saved presets.",
   "Interface Scale": "Adjust the in-game interface size from 80% to 100% by dragging the slider or entering a percentage.",
   "Interface Opacity": "Set the in-game interface opacity from 0% (transparent) to 100% (fully visible) by dragging the slider or entering a percentage.",
   "UI Appearance": "Adjust the menu background tint, menu width and height, and card opacity.",
