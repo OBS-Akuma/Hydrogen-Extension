@@ -24,4 +24,4 @@
   </p>
 </div>
 
-For installation and usage instructions, see [How to Download and Use the Hydrogen Extension](./HOWTODOWNLOAD.md)
+For installation and usage instructions, see [Extension](https://chromewebstore.google.com/detail/hydrogen/mafpifbccegknkklokoajpaelpkhgndp)
