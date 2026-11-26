@@ -61,7 +61,9 @@
           style: window.SM.storage.loadStyleSettings(),
           backgrounds: window.SM.storage.loadBackgroundSettings(),
           position: window.SM.storage.loadPos() || { x: 40, y: 40 },
-          plugins: readPluginSettings()
+          plugins: readPluginSettings(),
+          favorites: window.SM.storage.loadFavorites(),
+          hotkey: window.SM.storage.loadHotkey()
         }
       };
     }
@@ -81,6 +83,14 @@
         style,
         position,
         plugins,
+        favorites = [],
+        hotkey = {
+          code: 'ShiftRight',
+          ctrl: false,
+          alt: false,
+          shift: false,
+          meta: false
+        },
         backgrounds = { selected: 'default', custom: [] }
       } = data.settings;
 
@@ -119,6 +129,18 @@
         !(
           style.card_opacity === undefined ||
           /^(?:100|[0-9]{1,2})$/.test(String(style.card_opacity))
+        ) ||
+        !(
+          style.accent_color === undefined ||
+          ['blue', 'purple', 'green', 'orange', 'pink'].includes(style.accent_color)
+        ) ||
+        !(
+          style.border_radius === undefined ||
+          /^(?:0|[1-9]|1[0-9]|20)$/.test(String(style.border_radius))
+        ) ||
+        !(
+          style.sidebar_labels === undefined ||
+          typeof style.sidebar_labels === 'boolean'
         )
       ) {
         throw new Error('The exported Style tab settings are invalid.');
@@ -153,6 +175,25 @@
 
       if (!isRecord(plugins)) {
         throw new Error('The exported plugin settings are invalid.');
+      }
+
+      if (
+        !Array.isArray(favorites) ||
+        favorites.some(id => typeof id !== 'string' || id.length > 160)
+      ) {
+        throw new Error('The exported favorites are invalid.');
+      }
+
+      if (
+        !isRecord(hotkey) ||
+        typeof hotkey.code !== 'string' ||
+        !/^[A-Za-z][A-Za-z0-9]{0,39}$/.test(hotkey.code) ||
+        hotkey.code === 'Escape' ||
+        ['ctrl', 'alt', 'shift', 'meta'].some(
+          modifier => typeof hotkey[modifier] !== 'boolean'
+        )
+      ) {
+        throw new Error('The exported menu hotkey is invalid.');
       }
 
       if (
@@ -191,7 +232,15 @@
         }
       });
 
-      return { css, style, position, plugins, backgrounds };
+      return {
+        css,
+        style,
+        position,
+        plugins,
+        backgrounds,
+        favorites,
+        hotkey
+      };
     }
 
     function getPluginKeys() {
@@ -226,9 +275,36 @@
         el('div', 'sm-card-title', { textContent: 'UI Appearance' }),
         el('div', 'sm-card-desc', {
           textContent:
-            'Adjust the menu size and background and card opacity.'
+            'Adjust the menu colors, shape, size, and opacity.'
         })
       );
+
+      function createSliderLabels(input, stops, formatValue) {
+        const wrapper = el('div', 'sm-client-slider-wrap');
+        const labels = el('div', 'sm-slider-labels');
+        const labelElements = stops.map(value => {
+          const label = el('span', 'sm-slider-label', {
+            textContent: formatValue(value)
+          });
+          label.dataset.value = String(value);
+          labels.appendChild(label);
+          return label;
+        });
+
+        function update() {
+          labelElements.forEach(label => {
+            label.classList.toggle(
+              'sm-label-active',
+              Number(input.value) === Number(label.dataset.value)
+            );
+          });
+        }
+
+        input.addEventListener('input', update);
+        wrapper.append(input, labels);
+        update();
+        return { root: wrapper, update };
+      }
 
       const backgroundOpacityInput = el(
         'input',
@@ -249,12 +325,17 @@
       const opacityValue = el('span', 'sm-client-opacity-value', {
         textContent: styleSettings.background_opacity + '%'
       });
+      const backgroundOpacityControl = createSliderLabels(
+        backgroundOpacityInput,
+        [0, 25, 35, 50, 75, 100],
+        value => value + '%'
+      );
       const opacityRow = el('label', 'sm-client-appearance-row');
       opacityRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Background Tint Opacity'
         }),
-        backgroundOpacityInput,
+        backgroundOpacityControl.root,
         opacityValue
       );
 
@@ -274,12 +355,17 @@
       const menuWidthValue = el('span', 'sm-client-opacity-value', {
         textContent: styleSettings.menu_width + 'px'
       });
+      const menuWidthControl = createSliderLabels(
+        menuWidthInput,
+        [810, 900, 1000],
+        value => value
+      );
       const menuWidthRow = el('label', 'sm-client-appearance-row');
       menuWidthRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Menu Width'
         }),
-        menuWidthInput,
+        menuWidthControl.root,
         menuWidthValue
       );
 
@@ -299,12 +385,17 @@
       const menuHeightValue = el('span', 'sm-client-opacity-value', {
         textContent: styleSettings.menu_height + 'px'
       });
+      const menuHeightControl = createSliderLabels(
+        menuHeightInput,
+        [400, 660, 1000],
+        value => value
+      );
       const menuHeightRow = el('label', 'sm-client-appearance-row');
       menuHeightRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Menu Height'
         }),
-        menuHeightInput,
+        menuHeightControl.root,
         menuHeightValue
       );
 
@@ -327,14 +418,88 @@
       const cardOpacityValue = el('span', 'sm-client-opacity-value', {
         textContent: styleSettings.card_opacity + '%'
       });
+      const cardOpacityControl = createSliderLabels(
+        cardOpacityInput,
+        [0, 25, 50, 60, 75, 100],
+        value => value + '%'
+      );
       const cardOpacityRow = el('label', 'sm-client-appearance-row');
       cardOpacityRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Card Opacity'
         }),
-        cardOpacityInput,
+        cardOpacityControl.root,
         cardOpacityValue
       );
+
+      const borderRadiusInput = el(
+        'input',
+        'sm-client-opacity-slider sm-example-slider sm-client-radius-slider',
+        {
+          type: 'range',
+          min: '0',
+          max: '20',
+          step: '1',
+          value: styleSettings.border_radius
+        }
+      );
+      borderRadiusInput.setAttribute('aria-label', 'Border radius, 0 to 20 pixels');
+      const borderRadiusValue = el('span', 'sm-client-opacity-value', {
+        textContent: styleSettings.border_radius + 'px'
+      });
+      const borderRadiusControl = createSliderLabels(
+        borderRadiusInput,
+        [0, 4, 8, 12, 16, 20],
+        value => value
+      );
+      const borderRadiusRow = el('label', 'sm-client-appearance-row');
+      borderRadiusRow.append(
+        el('span', 'sm-client-appearance-label', {
+          textContent: 'Border Radius'
+        }),
+        borderRadiusControl.root,
+        borderRadiusValue
+      );
+
+      const accentRow = el('div', 'sm-client-appearance-row sm-accent-row');
+      accentRow.appendChild(el('span', 'sm-client-appearance-label', {
+        textContent: 'Accent Color'
+      }));
+      const accentPresets = el('div', 'sm-accent-presets');
+      const accentColors = {
+        blue: '#2bb0ff',
+        purple: '#a855f7',
+        green: '#22c55e',
+        orange: '#f97316',
+        pink: '#ec4899'
+      };
+      let accentColor = styleSettings.accent_color;
+      const accentButtons = Object.entries(accentColors).map(([name, color]) => {
+        const button = el('button', 'sm-accent-preset', {
+          type: 'button',
+          title: name[0].toUpperCase() + name.slice(1)
+        });
+        button.setAttribute('aria-label', name + ' accent color');
+        button.style.setProperty('--sm-preset-color', color);
+        button.dataset.color = name;
+        button.addEventListener('click', () => {
+          accentColor = name;
+          updateAccentSelection();
+          previewAppearance();
+          saveAppearance();
+        });
+        accentPresets.appendChild(button);
+        return button;
+      });
+      accentRow.appendChild(accentPresets);
+
+      function updateAccentSelection() {
+        accentButtons.forEach(button => {
+          const selected = button.dataset.color === accentColor;
+          button.classList.toggle('sm-selected', selected);
+          button.setAttribute('aria-pressed', String(selected));
+        });
+      }
 
       const appearanceStatus = el('div', 'sm-plugin-status');
       appearanceStatus.setAttribute('role', 'status');
@@ -345,6 +510,8 @@
         menuWidthRow,
         menuHeightRow,
         cardOpacityRow,
+        borderRadiusRow,
+        accentRow,
         appearanceStatus
       );
 
@@ -357,7 +524,18 @@
         menuHeightValue.textContent = styleSettings.menu_height + 'px';
         cardOpacityInput.value = styleSettings.card_opacity;
         cardOpacityValue.textContent = styleSettings.card_opacity + '%';
+        borderRadiusInput.value = styleSettings.border_radius;
+        borderRadiusValue.textContent = styleSettings.border_radius + 'px';
+        accentColor = styleSettings.accent_color;
+        updateAccentSelection();
         updateDefaultStopHighlights();
+        [
+          backgroundOpacityControl,
+          menuWidthControl,
+          menuHeightControl,
+          cardOpacityControl,
+          borderRadiusControl
+        ].forEach(control => control.update());
       }
 
       function updateDefaultStopHighlights() {
@@ -377,6 +555,10 @@
           'sm-at-stop',
           Number(menuHeightInput.value) === 660
         );
+        borderRadiusInput.classList.toggle(
+          'sm-at-stop',
+          Number(borderRadiusInput.value) === 8
+        );
       }
 
       function getAppearanceSettings() {
@@ -385,7 +567,9 @@
           background_opacity: backgroundOpacityInput.value,
           menu_width: menuWidthInput.value,
           menu_height: menuHeightInput.value,
-          card_opacity: cardOpacityInput.value
+          card_opacity: cardOpacityInput.value,
+          accent_color: accentColor,
+          border_radius: borderRadiusInput.value
         };
       }
 
@@ -394,7 +578,15 @@
         menuWidthValue.textContent = menuWidthInput.value + 'px';
         menuHeightValue.textContent = menuHeightInput.value + 'px';
         cardOpacityValue.textContent = cardOpacityInput.value + '%';
+        borderRadiusValue.textContent = borderRadiusInput.value + 'px';
         updateDefaultStopHighlights();
+        [
+          backgroundOpacityControl,
+          menuWidthControl,
+          menuHeightControl,
+          cardOpacityControl,
+          borderRadiusControl
+        ].forEach(control => control.update());
         onAppearanceChange?.(getAppearanceSettings());
       }
 
@@ -418,6 +610,7 @@
       }
 
       updateDefaultStopHighlights();
+      updateAccentSelection();
       backgroundOpacityInput.addEventListener('input', previewAppearance);
       backgroundOpacityInput.addEventListener('change', saveAppearance);
       menuWidthInput.addEventListener('input', previewAppearance);
@@ -426,6 +619,8 @@
       menuHeightInput.addEventListener('change', saveAppearance);
       cardOpacityInput.addEventListener('input', previewAppearance);
       cardOpacityInput.addEventListener('change', saveAppearance);
+      borderRadiusInput.addEventListener('input', previewAppearance);
+      borderRadiusInput.addEventListener('change', saveAppearance);
 
       const backgrounds = el('div', 'sm-card');
       const backgroundsHead = el('div', 'sm-card-head');
@@ -731,7 +926,10 @@
             background_opacity: '35',
             menu_width: '1000',
             menu_height: '660',
-            card_opacity: '60'
+            card_opacity: '60',
+            accent_color: 'blue',
+            border_radius: '8',
+            sidebar_labels: true
           })) {
             throw new Error('Could not reset the Style tab settings.');
           }
@@ -744,6 +942,20 @@
             defaultBackgroundSettings
           )) {
             throw new Error('Could not reset the background settings.');
+          }
+
+          if (!window.SM.storage.saveFavorites([])) {
+            throw new Error('Could not reset favorites.');
+          }
+
+          if (!window.SM.storage.saveHotkey({
+            code: 'ShiftRight',
+            ctrl: false,
+            alt: false,
+            shift: false,
+            meta: false
+          })) {
+            throw new Error('Could not reset the menu hotkey.');
           }
 
           getPluginKeys().forEach(key => localStorage.removeItem(key));
@@ -814,6 +1026,14 @@
 
           if (!await window.SM.storage.saveBackgroundSettings(data.backgrounds)) {
             throw new Error('Could not save the background settings.');
+          }
+
+          if (!window.SM.storage.saveFavorites(data.favorites)) {
+            throw new Error('Could not save favorites.');
+          }
+
+          if (!window.SM.storage.saveHotkey(data.hotkey)) {
+            throw new Error('Could not save the menu hotkey.');
           }
 
           backgroundSettings = data.backgrounds;

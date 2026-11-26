@@ -41,19 +41,31 @@
       return !!(
         target &&
         target.matches &&
-        target.matches('input, textarea, select, [contenteditable="true"]')
+        target.matches(
+          'input, textarea, select, [contenteditable="true"], ' +
+          '.sm-hotkey-capture.sm-recording'
+        )
       );
     }
 
     document.addEventListener('keydown', (event) => {
       if (event.repeat) return;
 
-      if (event.code === 'ShiftRight') {
-        if (isTyping(event.target)) return;
+      if (isTyping(event.target)) return;
 
+      const hotkey = window.SM.storage.loadHotkey();
+      const modifierKey = /^(?:Shift|Control|Alt|Meta)(?:Left|Right)$/.test(
+        event.code
+      );
+      if (
+        event.code === hotkey.code &&
+        event.ctrlKey === hotkey.ctrl &&
+        event.altKey === hotkey.alt &&
+        (modifierKey ? false : event.shiftKey) === hotkey.shift &&
+        event.metaKey === hotkey.meta
+      ) {
         event.preventDefault();
         menu.toggle();
-        return;
       }
 
       if (event.key === 'Escape' && menu.visible) {

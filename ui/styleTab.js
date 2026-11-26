@@ -63,8 +63,35 @@
     });
     opacityValueInput.setAttribute('aria-label', 'Interface Opacity value (%)');
 
-    function createInterfaceControl(slider, valueInput, label) {
+    function createInterfaceControl(
+      slider,
+      valueInput,
+      label,
+      stops,
+      formatStop
+    ) {
       const control = el('div', 'sm-interface-control');
+      const sliderWrap = el('div', 'sm-interface-slider-wrap');
+      const labels = el('div', 'sm-slider-labels');
+      const stopLabels = stops.map(value => {
+        const stopLabel = el('span', 'sm-slider-label', {
+          textContent: formatStop(value)
+        });
+        stopLabel.dataset.value = String(value);
+        labels.appendChild(stopLabel);
+        return stopLabel;
+      });
+
+      const updateStopLabels = () => {
+        stopLabels.forEach(stopLabel => {
+          stopLabel.classList.toggle(
+            'sm-label-active',
+            Number(slider.value) === Number(stopLabel.dataset.value)
+          );
+        });
+      };
+
+      sliderWrap.append(slider, labels);
       const valueGroup = el('div', 'sm-interface-value-group');
       const stepper = el('div', 'sm-interface-stepper');
       const stepButtons = [];
@@ -102,12 +129,12 @@
 
       valueGroup.appendChild(stepper);
       control.append(
-        slider,
+        sliderWrap,
         valueGroup,
         el('span', 'sm-interface-unit', '%')
       );
 
-      return { root: control, stepButtons };
+      return { root: control, stepButtons, updateStopLabels };
     }
 
     function createInterfaceRow(settingId, titleText, descriptionText, control) {
@@ -127,12 +154,16 @@
     const scaleControl = createInterfaceControl(
       scaleInput,
       scaleValueInput,
-      'Interface Scale'
+      'Interface Scale',
+      [80, 90, 100],
+      value => value + '%'
     );
     const opacityControl = createInterfaceControl(
       opacityInput,
       opacityValueInput,
-      'Interface Opacity'
+      'Interface Opacity',
+      [0, 25, 50, 75, 100],
+      value => value + '%'
     );
 
     interfaceCard.append(
@@ -187,7 +218,10 @@
         background_opacity: currentSettings.background_opacity,
         menu_width: currentSettings.menu_width,
         menu_height: currentSettings.menu_height,
-        card_opacity: currentSettings.card_opacity
+        card_opacity: currentSettings.card_opacity,
+        accent_color: currentSettings.accent_color,
+        border_radius: currentSettings.border_radius,
+        sidebar_labels: currentSettings.sidebar_labels
       };
     }
 
@@ -203,7 +237,15 @@
       window.SM.injector.applyInterfaceSettings(getInterfaceSettings());
     };
 
-    function bindSlider(slider, valueInput, min, max, stepButtons, stops) {
+    function bindSlider(
+      slider,
+      valueInput,
+      min,
+      max,
+      stepButtons,
+      stops,
+      updateStopLabels
+    ) {
       const updateStopHighlight = () => {
         slider.classList.toggle(
           'sm-at-stop',
@@ -215,6 +257,7 @@
         const value = Number(slider.value);
 
         updateStopHighlight();
+        updateStopLabels();
 
         stepButtons.forEach(({ button, direction }) => {
           button.disabled = direction > 0 ? value >= max : value <= min;
@@ -292,7 +335,8 @@
       80,
       100,
       scaleControl.stepButtons,
-      [80, 90, 100]
+      [80, 90, 100],
+      scaleControl.updateStopLabels
     );
     bindSlider(
       opacityInput,
@@ -300,7 +344,8 @@
       0,
       100,
       opacityControl.stepButtons,
-      [0, 25, 50, 75, 100]
+      [0, 25, 50, 75, 100],
+      opacityControl.updateStopLabels
     );
 
     const applyLink = () => {

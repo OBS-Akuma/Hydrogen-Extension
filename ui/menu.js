@@ -3,6 +3,13 @@
   const el = window.SM.el;
 
   const VERSION = chrome.runtime.getManifest().version;
+  const ACCENT_COLORS = {
+    blue: '#2bb0ff',
+    purple: '#a855f7',
+    green: '#22c55e',
+    orange: '#f97316',
+    pink: '#ec4899'
+  };
 
   window.SM.createMenu = function (cardInfo = {}) {
     const overlay = el('div', 'sm-root sm-overlay');
@@ -28,10 +35,26 @@
         Number(settings.card_opacity) <= 100
         ? Number(settings.card_opacity)
         : 60;
+      const accentColor = ACCENT_COLORS[settings.accent_color] || ACCENT_COLORS.blue;
+      const borderRadius = Number.isInteger(Number(settings.border_radius)) &&
+        Number(settings.border_radius) >= 0 &&
+        Number(settings.border_radius) <= 20
+        ? Number(settings.border_radius)
+        : 8;
 
       win.style.width = menuWidth + 'px';
       win.style.height = menuHeight + 'px';
       win.style.setProperty('--sm-card-opacity', String(cardOpacity / 100));
+      win.style.setProperty('--sm-blue', accentColor);
+      win.style.setProperty('--sm-blue-rgb', {
+        '#2bb0ff': '43, 176, 255',
+        '#a855f7': '168, 85, 247',
+        '#22c55e': '34, 197, 94',
+        '#f97316': '249, 115, 22',
+        '#ec4899': '236, 72, 153'
+      }[accentColor]);
+      win.style.setProperty('--sm-radius', borderRadius + 'px');
+      win.style.setProperty('--sm-window-radius', (borderRadius + 4) + 'px');
       win.style.setProperty(
         '--sm-bg-tint',
         `rgba(10, 10, 10, ${backgroundOpacity / 100})`
@@ -89,11 +112,26 @@
       toggle
     };
 
-    const topbar = window.SM.buildTopbar({ onClose: hide });
+    const topbar = window.SM.buildTopbar({
+      onClose: hide,
+      onFullscreen: () => {
+        const requestFullscreen = document.documentElement.requestFullscreen;
+        if (typeof requestFullscreen !== 'function') {
+          console.error('[SM] Fullscreen is not supported on this page.');
+          return;
+        }
+
+        requestFullscreen.call(document.documentElement)
+          .then(hide)
+          .catch(error => {
+            console.error('[SM] Could not enter website fullscreen:', error);
+          });
+      }
+    });
     win.appendChild(topbar);
 
     const searchSlot = topbar.querySelector('.sm-topbar-right');
-    const closeBtn = searchSlot.querySelector('.sm-close');
+    const closeActions = searchSlot.querySelector('.sm-close-actions');
 
     const search = window.SM.buildSearch({
       onPick: (hit) => {
@@ -149,14 +187,20 @@
       }
     });
 
-    searchSlot.insertBefore(search.root, closeBtn);
+    searchSlot.insertBefore(search.root, closeActions);
 
     const main = el('div', 'sm-main');
 
     const sidebar = window.SM.buildSidebar({
       active: activeTab,
       version: VERSION,
-      onSelect: switchTab
+      initialLabels: styleSettings.sidebar_labels,
+      onSelect: switchTab,
+      onLabelsChange: async enabled => {
+        const settings = window.SM.storage.loadStyleSettings();
+        settings.sidebar_labels = enabled;
+        return window.SM.storage.saveStyleSettings(settings);
+      }
     });
 
     main.appendChild(sidebar);
@@ -177,6 +221,15 @@
 
     content.appendChild(pluginsTab);
 
+    const favoritesTab = el('div', 'sm-tab-content');
+    favoritesTab.id = 'tab-favorites';
+    const favoritesList = el('div', 'sm-favorites-list');
+    const favoritesEmpty = el('div', 'sm-favorites-empty', {
+      textContent: 'Use the heart buttons on cards to save them here.'
+    });
+    favoritesTab.append(favoritesEmpty, favoritesList);
+    content.appendChild(favoritesTab);
+
     const clientTab = window.SM.buildClientTab({
       initialBackgroundSettings: backgroundSettings,
       initialStyleSettings: styleSettings,
@@ -184,6 +237,9 @@
       onAppearanceChange: setAppearance
     });
     content.appendChild(clientTab.root);
+
+    const hotkeysTab = window.SM.buildHotkeysTab();
+    content.appendChild(hotkeysTab.root);
 
     main.appendChild(content);
     win.appendChild(main);
@@ -343,8 +399,157 @@
       });
     }
 
+    let favorites = window.SM.storage.loadFavorites();
+    let favoritesSignature = '';
+
+    function cardTitle(card) {
+      const titleElement = card.querySelector('.sm-card-title');
+      if (!titleElement) return 'Untitled card';
+      const text = Array.from(titleElement.childNodes)
+        .filter(node => node.nodeType === Node.TEXT_NODE)
+        .map(node => node.textContent)
+        .join('')
+        .trim();
+      return text || titleElement.textContent.trim();
+    }
+
+    function favoriteId(card, tab) {
+      if (card.dataset.hydrogenFavoriteId) {
+        return card.dataset.hydrogenFavoriteId;
+      }
+
+      const pluginId = card.dataset.hydrogenPlugin;
+      const titleKey = cardTitle(card)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 100);
+      card.dataset.hydrogenFavoriteId = pluginId
+        ? 'plugin:' + pluginId
+        : tab.id + ':' + (titleKey || 'card');
+      return card.dataset.hydrogenFavoriteId;
+    }
+
+    function renderFavorites() {
+      const cards = Array.from(
+        overlay.querySelectorAll('.sm-tab-content .sm-card')
+      ).filter(card => {
+        const tab = card.closest('.sm-tab-content');
+        return tab && tab.id !== 'tab-favorites' && tab.id !== 'tab-hotkeys';
+      });
+      const byId = new Map(cards.map(card => {
+        const tab = card.closest('.sm-tab-content');
+        return [favoriteId(card, tab), { card, tab }];
+      }));
+      const entries = favorites
+        .map(id => {
+          const entry = byId.get(id);
+          return entry
+            ? {
+                id,
+                card: entry.card,
+                tab: entry.tab,
+                title: cardTitle(entry.card)
+              }
+            : null;
+        })
+        .filter(Boolean);
+      const signature = JSON.stringify(entries.map(({ id, title }) => [id, title]));
+      if (signature === favoritesSignature) return;
+      favoritesSignature = signature;
+      favoritesEmpty.hidden = entries.length > 0;
+      favoritesList.replaceChildren();
+
+      entries.forEach(entry => {
+        const button = el('button', 'sm-favorite-link', {
+          type: 'button',
+          textContent: entry.title
+        });
+        button.appendChild(el('span', 'sm-favorite-location', {
+          textContent: entry.tab.id.replace('tab-', '')
+        }));
+        button.addEventListener('click', () => {
+          switchTab(entry.tab.id.replace('tab-', ''));
+          entry.card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          entry.card.classList.add('sm-flash');
+          setTimeout(() => entry.card.classList.remove('sm-flash'), 1400);
+        });
+        favoritesList.appendChild(button);
+      });
+    }
+
+    function addFavoriteButton(card) {
+      const title = card.querySelector('.sm-card-title');
+      const tab = card.closest('.sm-tab-content');
+      if (
+        !title ||
+        !tab ||
+        tab.id === 'tab-favorites' ||
+        tab.id === 'tab-hotkeys' ||
+        title.closest('summary') ||
+        title.querySelector('.sm-favorite-btn')
+      ) {
+        return;
+      }
+
+      const id = favoriteId(card, tab);
+      const button = el('button', 'sm-favorite-btn', {
+        type: 'button',
+        title: 'Add to favorites'
+      });
+      button.setAttribute('aria-label', 'Add ' + cardTitle(card) + ' to favorites');
+      const icon = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'svg'
+      );
+      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'path'
+      );
+      path.setAttribute(
+        'd',
+        'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z'
+      );
+      icon.appendChild(path);
+      button.appendChild(icon);
+
+      function syncFavorite() {
+        const selected = favorites.includes(id);
+        button.classList.toggle('sm-favorited', selected);
+        button.title = selected ? 'Remove from favorites' : 'Add to favorites';
+        button.setAttribute(
+          'aria-label',
+          (selected ? 'Remove ' : 'Add ') + cardTitle(card) + ' ' +
+          (selected ? 'from' : 'to') + ' favorites'
+        );
+        button.setAttribute('aria-pressed', String(selected));
+      }
+
+      button.addEventListener('click', () => {
+        const previous = favorites;
+        favorites = favorites.includes(id)
+          ? favorites.filter(favorite => favorite !== id)
+          : favorites.concat(id);
+        if (!window.SM.storage.saveFavorites(favorites)) {
+          favorites = previous;
+          console.error('[SM] Could not save favorites.');
+        }
+        syncFavorite();
+        renderFavorites();
+      });
+
+      title.appendChild(button);
+      syncFavorite();
+    }
+
     function updateCardInfo() {
-      overlay.querySelectorAll('.sm-card').forEach(addCardInfo);
+      overlay.querySelectorAll('.sm-card').forEach(card => {
+        addFavoriteButton(card);
+        addCardInfo(card);
+      });
+      renderFavorites();
     }
 
     updateCardInfo();

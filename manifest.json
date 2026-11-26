@@ -92,6 +92,7 @@
         "ui/sidebar.js",
         "ui/styleTab.js",
         "ui/clientTab.js",
+        "ui/hotkeysTab.js",
         "ui/menu.js",
         "content.js"
       ],
