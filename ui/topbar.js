@@ -50,6 +50,7 @@
 
     title.appendChild(logo);
     title.appendChild(document.createTextNode('Hydrogen Extension'));
+    title.appendChild(el('span', 'sm-title-version', { hidden: true }));
 
     left.appendChild(title);
     bar.appendChild(left);

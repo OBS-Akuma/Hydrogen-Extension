@@ -13,6 +13,7 @@
   "Interface Scale": "Adjust the in-game interface size from 80% to 100% by dragging the slider or entering a percentage.",
   "Interface Opacity": "Set the in-game interface opacity from 0% (transparent) to 100% (fully visible) by dragging the slider or entering a percentage.",
   "UI Appearance": "Adjust the menu background tint, menu width and height, and card opacity.",
+  "Menu Hotkey": "Choose a keyboard shortcut to open or close the Hydrogen menu. Press a key in the shortcut picker to record it.",
   "Background": "Choose a built-in menu background or upload a custom PNG, JPEG/JPG, WebP, or GIF image.",
   "Reset Settings": "Clear all saved Hydrogen settings and turn off every plugin. This action cannot be undone.",
   "Client Settings": "Import or export the Hydrogen client preferences, plugins, styles, and menu position.",

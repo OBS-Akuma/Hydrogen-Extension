@@ -26,7 +26,8 @@
   },
 
   "host_permissions": [
-    "https://raw.githubusercontent.com/*"
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/*"
   ],
 
   "web_accessible_resources": [
@@ -45,6 +46,7 @@
         "Backgrounds/Gtmts.webp",
         "Backgrounds/Os.webp",
         "Backgrounds/efk.webp",
+        "Backgrounds/Juice.webp",
         "json/CardInfo.json"
       ],
       "matches": [
@@ -93,6 +95,7 @@
         "ui/styleTab.js",
         "ui/clientTab.js",
         "ui/hotkeysTab.js",
+        "ui/changelogTab.js",
         "ui/menu.js",
         "content.js"
       ],

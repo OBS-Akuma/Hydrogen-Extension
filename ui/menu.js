@@ -3,6 +3,7 @@
   const el = window.SM.el;
 
   const VERSION = chrome.runtime.getManifest().version;
+  const WELCOME_DISMISSED_KEY = 'sm_welcome_screen_dismissed';
   const ACCENT_COLORS = {
     blue: '#2bb0ff',
     purple: '#a855f7',
@@ -10,18 +11,119 @@
     orange: '#f97316',
     pink: '#ec4899'
   };
-  const ACCENT_RGB = {
-    blue: '43, 176, 255',
-    purple: '168, 85, 247',
-    green: '34, 197, 94',
-    orange: '249, 115, 22',
-    pink: '236, 72, 153'
+  const SURFACE_COLORS = {
+    default: {
+      rgb: '21, 21, 21',
+      surface: '#151515',
+      field: '#0b0b0b',
+      line: '#1f1f1f',
+      lineStrong: '#2c2c2c'
+    },
+    blue: {
+      rgb: '18, 44, 60',
+      surface: '#122c3c',
+      field: '#081a25',
+      line: '#193344',
+      lineStrong: '#27495c'
+    },
+    purple: {
+      rgb: '37, 27, 53',
+      surface: '#251b35',
+      field: '#140e20',
+      line: '#30233f',
+      lineStrong: '#45345a'
+    },
+    green: {
+      rgb: '25, 48, 32',
+      surface: '#193020',
+      field: '#0c190f',
+      line: '#23402c',
+      lineStrong: '#345b3f'
+    },
+    orange: {
+      rgb: '54, 36, 20',
+      surface: '#362414',
+      field: '#1d1309',
+      line: '#49311b',
+      lineStrong: '#644525'
+    },
+    pink: {
+      rgb: '53, 26, 43',
+      surface: '#351a2b',
+      field: '#1c0c16',
+      line: '#49243a',
+      lineStrong: '#633450'
+    }
   };
+
+  function parseHexColor(value) {
+    if (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value)) {
+      return null;
+    }
+
+    return [
+      Number.parseInt(value.slice(1, 3), 16),
+      Number.parseInt(value.slice(3, 5), 16),
+      Number.parseInt(value.slice(5, 7), 16)
+    ];
+  }
+
+  function rgbToHex(rgb) {
+    return '#' + rgb
+      .map(value => Math.round(value).toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  function createCustomSurfaceColor(value) {
+    const color = parseHexColor(value);
+    if (!color) return null;
+
+    const blend = (base, amount) =>
+      base.map((value, index) =>
+        Math.round(value + (color[index] - value) * amount)
+      );
+    const surface = blend([10, 10, 10], 0.2);
+    const field = blend([8, 8, 8], 0.08);
+    const line = blend([31, 31, 31], 0.2);
+    const lineStrong = blend([44, 44, 44], 0.3);
+    const active = blend([28, 28, 28], 0.25);
+
+    return {
+      rgb: surface.join(', '),
+      surface: rgbToHex(surface),
+      field: rgbToHex(field),
+      line: rgbToHex(line),
+      lineStrong: rgbToHex(lineStrong),
+      active: rgbToHex(active)
+    };
+  }
 
   window.SM.createMenu = function (cardInfo = {}) {
     const overlay = el('div', 'sm-root sm-overlay');
     const win = el('div', 'sm-window');
     const styleSettings = window.SM.storage.loadStyleSettings();
+    let welcomeDismissed = false;
+    try {
+      welcomeDismissed =
+        localStorage.getItem(WELCOME_DISMISSED_KEY) === 'true';
+    } catch (error) {
+      console.error('[SM] Could not read welcome screen setting:', error);
+    }
+
+    function saveWelcomeDismissed(value) {
+      try {
+        if (value) {
+          localStorage.setItem(WELCOME_DISMISSED_KEY, 'true');
+        } else {
+          localStorage.removeItem(WELCOME_DISMISSED_KEY);
+        }
+        welcomeDismissed = value;
+        return true;
+      } catch (error) {
+        console.error('[SM] Could not save welcome screen setting:', error);
+        return false;
+      }
+    }
 
     function setAppearance(settings) {
       const backgroundOpacity = Number.isInteger(
@@ -42,7 +144,15 @@
         Number(settings.card_opacity) <= 100
         ? Number(settings.card_opacity)
         : 60;
-      const accentColor = ACCENT_COLORS[settings.accent_color] || ACCENT_COLORS.blue;
+      const accentColor = ACCENT_COLORS[settings.accent_color] ||
+        (parseHexColor(settings.accent_color)
+          ? settings.accent_color
+          : ACCENT_COLORS.blue);
+      const accentRgb = parseHexColor(accentColor)?.join(', ') ||
+        '43, 176, 255';
+      const surface = SURFACE_COLORS[settings.surface_color] ||
+        createCustomSurfaceColor(settings.surface_color) ||
+        SURFACE_COLORS.default;
       const borderRadius = Number.isInteger(Number(settings.border_radius)) &&
         Number(settings.border_radius) >= 0 &&
         Number(settings.border_radius) <= 20
@@ -53,8 +163,20 @@
       win.style.height = menuHeight + 'px';
       win.style.setProperty('--sm-card-opacity', String(cardOpacity / 100));
       win.style.setProperty('--sm-blue', accentColor);
-      win.style.setProperty('--sm-blue-rgb', ACCENT_RGB[settings.accent_color] || ACCENT_RGB.blue);
-      win.style.setProperty('--sm-surface-rgb', ACCENT_RGB[settings.surface_color] || ACCENT_RGB.blue);
+      win.style.setProperty('--sm-blue-rgb', accentRgb);
+      win.style.setProperty('--sm-surface-rgb', surface.rgb);
+      win.style.setProperty('--sm-surface-color', surface.surface);
+      win.style.setProperty('--sm-field', surface.field);
+      win.style.setProperty('--sm-line', surface.line);
+      win.style.setProperty('--sm-line-strong', surface.lineStrong);
+      win.style.setProperty('--sm-active-color', {
+        default: '#1c1c1c',
+        blue: '#193c52',
+        purple: '#342646',
+        green: '#21412b',
+        orange: '#493116',
+        pink: '#49243a'
+      }[settings.surface_color] || surface.active || '#1c1c1c');
       win.style.setProperty('--sm-radius', borderRadius + 'px');
       win.style.setProperty('--sm-window-radius', borderRadius + 'px');
       win.style.setProperty(
@@ -74,7 +196,8 @@
       theykilledher: 'Backgrounds/Tkh.webp',
       verclose: 'Backgrounds/Gtmts.webp',
       ophelia: 'Backgrounds/Os.webp',
-      efk: 'Backgrounds/efk.webp'
+      efk: 'Backgrounds/efk.webp',
+      juice: 'Backgrounds/Juice.webp'
     };
 
     function setBackground(source) {
@@ -103,7 +226,7 @@
     win.style.top = pos.y + 'px';
 
     let visible = false;
-    let activeTab = 'style';
+    let activeTab = 'changelog';
 
     const api = {
       overlay,
@@ -117,6 +240,13 @@
     const topbar = window.SM.buildTopbar({
       onClose: hide,
       onFullscreen: () => {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(error => {
+            console.error('[SM] Could not exit website fullscreen:', error);
+          });
+          return;
+        }
+
         const requestFullscreen = document.documentElement.requestFullscreen;
         if (typeof requestFullscreen !== 'function') {
           console.error('[SM] Fullscreen is not supported on this page.');
@@ -129,12 +259,50 @@
           });
       }
     });
+    const fullscreenButton = topbar.querySelector('.sm-fullscreen');
+    function syncFullscreenButton() {
+      const label = document.fullscreenElement
+        ? 'Exit website fullscreen'
+        : 'Enter website fullscreen';
+      fullscreenButton.title = label;
+      fullscreenButton.setAttribute('aria-label', label);
+    }
+    document.addEventListener('fullscreenchange', syncFullscreenButton);
+    syncFullscreenButton();
     win.appendChild(topbar);
 
     const searchSlot = topbar.querySelector('.sm-topbar-right');
     const closeActions = searchSlot.querySelector('.sm-close-actions');
 
     const search = window.SM.buildSearch({
+      isFavorited: hit => {
+        const item = hit.item;
+        let target = null;
+
+        if (item instanceof Element) {
+          target = item;
+        } else if (
+          item &&
+          typeof item === 'object' &&
+          item.plugin
+        ) {
+          target = document.querySelector(
+            '#tab-plugins [data-hydrogen-plugin="' + item.plugin + '"]'
+          );
+        } else if (
+          item &&
+          typeof item === 'object' &&
+          item.selector
+        ) {
+          target = document.querySelector(item.selector);
+        }
+
+        const card = target?.closest('.sm-card') ||
+          target?.querySelector('.sm-card');
+        const tab = card?.closest('.sm-tab-content');
+        return !!card && !!tab &&
+          favorites.includes(favoriteId(card, tab));
+      },
       onPick: (hit) => {
         const item = hit.item;
 
@@ -195,14 +363,37 @@
     const sidebarControls = window.SM.buildSidebar({
       active: activeTab,
       version: VERSION,
+      versionTarget: topbar.querySelector('.sm-title-version'),
       onSelect: switchTab
     });
     const sidebar = sidebarControls.root;
     sidebarControls.setLabels(styleSettings.sidebar_labels);
+    sidebarControls.setTabLabel(
+      'changelog',
+      welcomeDismissed ? 'Changelog' : 'Home'
+    );
+    sidebarControls.setTabIcon(
+      'changelog',
+      welcomeDismissed ? 'pen-to-square' : 'house'
+    );
+    sidebarControls.setTabGroupTitleVisible('changelog', !welcomeDismissed);
 
     main.appendChild(sidebar);
 
     const content = el('div', 'sm-content');
+
+    const changelogTab = window.SM.buildChangelogTab({
+      onSelectTab: switchTab,
+      welcomeDismissed,
+      onDismissWelcome: () => {
+        if (!saveWelcomeDismissed(true)) return false;
+        sidebarControls.setTabLabel('changelog', 'Changelog');
+        sidebarControls.setTabIcon('changelog', 'pen-to-square');
+        sidebarControls.setTabGroupTitleVisible('changelog', false);
+        return true;
+      }
+    });
+    content.appendChild(changelogTab.root);
 
     const styleTab = window.SM.buildStyleTab({
       initialCss: window.SM.storage.loadCss(),
@@ -210,6 +401,7 @@
       tabId: 'style',
       tabLabel: 'Style'
     });
+    styleTab.root.classList.remove('sm-active');
 
     content.appendChild(styleTab.root);
 
@@ -232,7 +424,16 @@
       initialStyleSettings: styleSettings,
       onBackgroundChange: setBackground,
       onAppearanceChange: setAppearance,
-      onSidebarLabelsChange: sidebarControls.setLabels
+      onSidebarLabelsChange: sidebarControls.setLabels,
+      onRestoreWelcome: () => {
+        if (!saveWelcomeDismissed(false)) return false;
+        changelogTab.setWelcomeVisible(true);
+        sidebarControls.setTabLabel('changelog', 'Home');
+        sidebarControls.setTabIcon('changelog', 'house');
+        sidebarControls.setTabGroupTitleVisible('changelog', true);
+        switchTab('changelog');
+        return true;
+      }
     });
     content.appendChild(clientTab.root);
 
@@ -326,7 +527,12 @@
         const cards = tab
           ? Array.from(tab.querySelectorAll('.sm-card'))
           : [];
-        const tabName = tab?.id === 'tab-plugins' ? 'Plugins' : 'Style';
+        const tabName = {
+          'tab-changelog': 'Changelog',
+          'tab-plugins': 'Plugins',
+          'tab-hotkeys': 'Hotkeys',
+          'tab-client': 'Client'
+        }[tab?.id] || 'Style';
 
         return `${tabName} tab > ${ordinal(cards.indexOf(card) + 1)} card`;
       }
@@ -455,10 +661,14 @@
       const signature = JSON.stringify(entries.map(({ id, title }) => [id, title]));
       if (signature === favoritesSignature) return;
       favoritesSignature = signature;
-      favoritesEmpty.hidden = entries.length > 0;
+      const hasFavorites = entries.length > 0;
+      favoritesEmpty.hidden = hasFavorites;
+      favoritesTab.hidden = !hasFavorites;
+      sidebarControls.setTabVisible('favorites', hasFavorites);
       favoritesList.replaceChildren();
 
       entries.forEach(entry => {
+        const item = el('div', 'sm-favorite-item');
         const button = el('button', 'sm-favorite-link', {
           type: 'button',
           textContent: entry.title
@@ -472,8 +682,31 @@
           entry.card.classList.add('sm-flash');
           setTimeout(() => entry.card.classList.remove('sm-flash'), 1400);
         });
-        favoritesList.appendChild(button);
+
+        const removeButton = el('button', 'sm-favorite-remove', {
+          type: 'button',
+          textContent: 'Remove'
+        });
+        removeButton.setAttribute(
+          'aria-label',
+          'Remove ' + entry.title + ' from favorites'
+        );
+        removeButton.addEventListener('click', () => {
+          const favoriteButton = entry.card.querySelector('.sm-favorite-btn');
+          if (!favoriteButton) {
+            console.error('[SM] Could not find the card favorite button.');
+            return;
+          }
+          favoriteButton.click();
+        });
+
+        item.append(button, removeButton);
+        favoritesList.appendChild(item);
       });
+
+      if (!hasFavorites && activeTab === 'favorites') {
+        switchTab('style');
+      }
     }
 
     function addFavoriteButton(card) {
@@ -501,15 +734,16 @@
         'svg'
       );
       icon.classList.add('fa-solid', 'fa-heart');
-      icon.setAttribute('viewBox', '0 0 24 24');
+      icon.setAttribute('viewBox', '0 0 512 512');
       icon.setAttribute('aria-hidden', 'true');
+      // Font Awesome Free 6.7.2 heart path, CC BY 4.0: https://fontawesome.com/license/free
       const path = document.createElementNS(
         'http://www.w3.org/2000/svg',
         'path'
       );
       path.setAttribute(
         'd',
-        'M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 0 1 7.5 3c1.74 0 3.41.81 4.5 2.09A5.98 5.98 0 0 1 16.5 3 5.5 5.5 0 0 1 22 8.5c0 3.78-3.4 6.86-8.55 11.51L12 21.35Z'
+        'M47.6 300.4L228.3 469.1c7.5 7 17.4 10.9 27.7 10.9s20.2-3.9 27.7-10.9L464.4 300.4c30.4-28.3 47.6-68 47.6-109.5v-5.8c0-69.9-50.5-129.5-119.4-141C347 36.5 300.6 51.4 268 84L256 96 244 84c-32.6-32.6-79-47.5-124.6-39.9C50.5 55.6 0 115.2 0 185.1v5.8c0 41.5 17.2 81.2 47.6 109.5z'
       );
       icon.appendChild(path);
       button.appendChild(icon);
@@ -582,6 +816,7 @@
 
     function switchTab(tabId) {
       if (tabId === activeTab) return;
+      if (tabId === 'favorites' && favoritesTab.hidden) return;
 
       activeTab = tabId;
 
@@ -600,6 +835,7 @@
       });
 
       content.scrollTop = 0;
+      if (tabId === 'changelog') changelogTab.updateHotkey();
     }
 
     function show() {

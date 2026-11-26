@@ -3,7 +3,8 @@
     const FORMAT = 'Hydrogen Client Settings';
     const VERSION = 1;
     const PLUGIN_PREFIX = 'sm_plugin_';
-    const BUILTIN_BACKGROUNDS = ['default', 'main', 'halloween', 'newvsoldgen', 'theykilledher', 'behind', 'ophelia', 'efk'];
+    const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+    const BUILTIN_BACKGROUNDS = ['default', 'main', 'halloween', 'newvsoldgen', 'theykilledher', 'behind', 'ophelia', 'efk', 'juice'];
 
     function isBackgroundData(value) {
       return typeof value === 'string' &&
@@ -132,11 +133,33 @@
         ) ||
         !(
           style.accent_color === undefined ||
-          ['blue', 'purple', 'green', 'orange', 'pink'].includes(style.accent_color)
+          ['blue', 'purple', 'green', 'orange', 'pink'].includes(style.accent_color) ||
+          (typeof style.accent_color === 'string' &&
+            HEX_COLOR_PATTERN.test(style.accent_color))
         ) ||
         !(
           style.surface_color === undefined ||
-          ['blue', 'purple', 'green', 'orange', 'pink'].includes(style.surface_color)
+          ['default', 'blue', 'purple', 'green', 'orange', 'pink'].includes(style.surface_color) ||
+          (typeof style.surface_color === 'string' &&
+            HEX_COLOR_PATTERN.test(style.surface_color))
+        ) ||
+        !(
+          style.custom_accent_colors === undefined ||
+          (Array.isArray(style.custom_accent_colors) &&
+            style.custom_accent_colors.every(color =>
+              typeof color === 'string' && HEX_COLOR_PATTERN.test(color)
+            ))
+        ) ||
+        !(
+          style.custom_surface_colors === undefined ||
+          (Array.isArray(style.custom_surface_colors) &&
+            style.custom_surface_colors.every(color =>
+              typeof color === 'string' && HEX_COLOR_PATTERN.test(color)
+            ))
+        ) ||
+        !(
+          style.surface_color_version === undefined ||
+          style.surface_color_version === 1
         ) ||
         !(
           style.border_radius === undefined ||
@@ -266,7 +289,8 @@
       initialStyleSettings,
       onBackgroundChange,
       onAppearanceChange,
-      onSidebarLabelsChange
+      onSidebarLabelsChange,
+      onRestoreWelcome
     } = {}) {
       const root = el('div', 'sm-tab-content');
       root.id = 'tab-client';
@@ -284,8 +308,9 @@
         })
       );
 
-      function createSliderLabels(input, stops, formatValue) {
+      function createSliderLabels(input, stops, formatValue, unit) {
         const wrapper = el('div', 'sm-client-slider-wrap');
+        const track = el('div', 'sm-client-slider-track');
         const labels = el('div', 'sm-slider-labels');
         const labelElements = stops.map(value => {
           const label = el('span', 'sm-slider-label', {
@@ -303,10 +328,99 @@
               Number(input.value) === Number(label.dataset.value)
             );
           });
+          valueInput.value = input.value;
+          stepButtons.forEach(({ button, direction }) => {
+            button.disabled = direction < 0
+              ? Number(input.value) <= Number(input.min)
+              : Number(input.value) >= Number(input.max);
+          });
         }
 
+        const valueInput = el('input', 'sm-interface-value', {
+          type: 'number',
+          min: input.min,
+          max: input.max,
+          step: input.step,
+          value: input.value
+        });
+        valueInput.setAttribute('aria-label', input.getAttribute('aria-label') + ' value');
+        const valueGroup = el('div', 'sm-interface-value-group');
+        const stepper = el('div', 'sm-interface-stepper');
+        const stepButtons = [];
+
+        [
+          { direction: 1, action: 'Increase', path: 'M3 7.5 6 4.5l3 3' },
+          { direction: -1, action: 'Decrease', path: 'M3 4.5 6 7.5l3-3' }
+        ].forEach(({ direction, action, path }) => {
+          const button = el('button', 'sm-interface-step', {
+            type: 'button',
+            title: action + ' ' + input.getAttribute('aria-label')
+          });
+          button.setAttribute('aria-label', button.title);
+
+          const icon = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'svg'
+          );
+          icon.setAttribute('viewBox', '0 0 12 12');
+          icon.setAttribute('aria-hidden', 'true');
+          const arrow = document.createElementNS(
+            'http://www.w3.org/2000/svg',
+            'path'
+          );
+          arrow.setAttribute('d', path);
+          icon.appendChild(arrow);
+          button.appendChild(icon);
+          button.addEventListener('click', () => {
+            const next = Math.max(
+              Number(input.min),
+              Math.min(
+                Number(input.max),
+                Number(input.value) + direction * Number(input.step)
+              )
+            );
+            if (next === Number(input.value)) return;
+            input.value = String(next);
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+          stepper.appendChild(button);
+          stepButtons.push({ button, direction });
+        });
+
+        valueInput.addEventListener('input', () => {
+          const value = Number(valueInput.value);
+          if (
+            valueInput.value === '' ||
+            !Number.isFinite(value) ||
+            value < Number(input.min) ||
+            value > Number(input.max)
+          ) {
+            return;
+          }
+          input.value = String(value);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        valueInput.addEventListener('change', () => {
+          const value = Number(valueInput.value);
+          const valid = valueInput.value !== '' &&
+            Number.isFinite(value) &&
+            value >= Number(input.min) &&
+            value <= Number(input.max);
+          if (!valid) valueInput.value = input.value;
+          else input.value = String(value);
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
         input.addEventListener('input', update);
-        wrapper.append(input, labels);
+        track.append(input, labels);
+        valueGroup.append(
+          valueInput,
+          stepper,
+          el('span', 'sm-interface-unit', { textContent: unit })
+        );
+        wrapper.append(track, valueGroup);
         update();
         return { root: wrapper, update };
       }
@@ -327,21 +441,18 @@
         'Background tint opacity, default 35 percent'
       );
       backgroundOpacityInput.title = 'Default: 35%';
-      const opacityValue = el('span', 'sm-client-opacity-value', {
-        textContent: styleSettings.background_opacity + '%'
-      });
       const backgroundOpacityControl = createSliderLabels(
         backgroundOpacityInput,
         [0, 25, 35, 50, 75, 100],
-        value => value + '%'
+        value => value + '%',
+        '%'
       );
       const opacityRow = el('label', 'sm-client-appearance-row');
       opacityRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Background Tint Opacity'
         }),
-        backgroundOpacityControl.root,
-        opacityValue
+        backgroundOpacityControl.root
       );
 
       const menuWidthInput = el(
@@ -357,21 +468,18 @@
       );
       menuWidthInput.setAttribute('aria-label', 'Menu width, default 1000 pixels');
       menuWidthInput.title = 'Default: 1000px';
-      const menuWidthValue = el('span', 'sm-client-opacity-value', {
-        textContent: styleSettings.menu_width + 'px'
-      });
       const menuWidthControl = createSliderLabels(
         menuWidthInput,
         [810, 900, 1000],
-        value => value
+        value => value,
+        'px'
       );
       const menuWidthRow = el('label', 'sm-client-appearance-row');
       menuWidthRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Menu Width'
         }),
-        menuWidthControl.root,
-        menuWidthValue
+        menuWidthControl.root
       );
 
       const menuHeightInput = el(
@@ -387,21 +495,18 @@
       );
       menuHeightInput.setAttribute('aria-label', 'Menu height, default 660 pixels');
       menuHeightInput.title = 'Default: 660px';
-      const menuHeightValue = el('span', 'sm-client-opacity-value', {
-        textContent: styleSettings.menu_height + 'px'
-      });
       const menuHeightControl = createSliderLabels(
         menuHeightInput,
         [400, 660, 1000],
-        value => value
+        value => value,
+        'px'
       );
       const menuHeightRow = el('label', 'sm-client-appearance-row');
       menuHeightRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Menu Height'
         }),
-        menuHeightControl.root,
-        menuHeightValue
+        menuHeightControl.root
       );
 
       const cardOpacityInput = el(
@@ -420,21 +525,18 @@
         'Card opacity, default 60 percent'
       );
       cardOpacityInput.title = 'Default: 60%';
-      const cardOpacityValue = el('span', 'sm-client-opacity-value', {
-        textContent: styleSettings.card_opacity + '%'
-      });
       const cardOpacityControl = createSliderLabels(
         cardOpacityInput,
         [0, 25, 50, 60, 75, 100],
-        value => value + '%'
+        value => value + '%',
+        '%'
       );
       const cardOpacityRow = el('label', 'sm-client-appearance-row');
       cardOpacityRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Card Opacity'
         }),
-        cardOpacityControl.root,
-        cardOpacityValue
+        cardOpacityControl.root
       );
 
       const borderRadiusInput = el(
@@ -449,21 +551,18 @@
         }
       );
       borderRadiusInput.setAttribute('aria-label', 'Border radius, 0 to 20 pixels');
-      const borderRadiusValue = el('span', 'sm-client-opacity-value', {
-        textContent: styleSettings.border_radius + 'px'
-      });
       const borderRadiusControl = createSliderLabels(
         borderRadiusInput,
         [0, 4, 8, 12, 16, 20],
-        value => value
+        value => value,
+        'px'
       );
       const borderRadiusRow = el('label', 'sm-client-appearance-row');
       borderRadiusRow.append(
         el('span', 'sm-client-appearance-label', {
           textContent: 'Border Radius'
         }),
-        borderRadiusControl.root,
-        borderRadiusValue
+        borderRadiusControl.root
       );
 
       const accentRow = el('div', 'sm-client-appearance-row sm-accent-row');
@@ -471,6 +570,57 @@
         textContent: 'Accent Color'
       }));
       const accentPresets = el('div', 'sm-accent-presets');
+      function createCustomColorControl(
+        container,
+        colors,
+        buttons,
+        label,
+        fallbackColor,
+        onSelect
+      ) {
+        const addControl = el('label', 'sm-accent-preset sm-accent-add');
+        addControl.title = 'Add custom ' + label + ' color';
+        const addIcon = el('span', null, { textContent: '+' });
+        const input = el('input', 'sm-accent-color-input', {
+          type: 'color',
+          value: fallbackColor
+        });
+        input.setAttribute('aria-label', 'Add custom ' + label + ' color');
+        addControl.append(addIcon, input);
+        container.appendChild(addControl);
+
+        function render() {
+          buttons.forEach(button => button.remove());
+          buttons.length = 0;
+          colors.forEach(color => {
+            const button = el(
+              'button',
+              'sm-accent-preset sm-accent-custom-preset',
+              { type: 'button', title: 'Custom ' + label + ' color ' + color }
+            );
+            button.setAttribute(
+              'aria-label',
+              'Custom ' + label + ' color ' + color
+            );
+            button.style.setProperty('--sm-preset-color', color);
+            button.dataset.color = color;
+            button.addEventListener('click', () => onSelect(color));
+            container.insertBefore(button, addControl);
+            buttons.push(button);
+          });
+        }
+
+        input.addEventListener('change', () => {
+          const color = input.value.toLowerCase();
+          if (!colors.includes(color)) colors.push(color);
+          render();
+          onSelect(color);
+        });
+
+        render();
+        return { input, render };
+      }
+
       const accentColors = {
         blue: '#2bb0ff',
         purple: '#a855f7',
@@ -479,6 +629,10 @@
         pink: '#ec4899'
       };
       let accentColor = styleSettings.accent_color;
+      const customAccentColors = [
+        ...(styleSettings.custom_accent_colors || [])
+      ];
+      const customAccentButtons = [];
       const accentButtons = Object.entries(accentColors).map(([name, color]) => {
         const button = el('button', 'sm-accent-preset', {
           type: 'button',
@@ -487,24 +641,40 @@
         button.setAttribute('aria-label', name + ' accent color');
         button.style.setProperty('--sm-preset-color', color);
         button.dataset.color = name;
-        button.addEventListener('click', () => {
-          accentColor = name;
-          updateAccentSelection();
-          previewAppearance();
-          saveAppearance();
-        });
+        button.addEventListener('click', () => selectAccentColor(name));
         accentPresets.appendChild(button);
         return button;
       });
-      accentRow.appendChild(accentPresets);
 
       function updateAccentSelection() {
-        accentButtons.forEach(button => {
+        [...accentButtons, ...customAccentButtons].forEach(button => {
           const selected = button.dataset.color === accentColor;
           button.classList.toggle('sm-selected', selected);
           button.setAttribute('aria-pressed', String(selected));
         });
       }
+
+      let customAccentControl;
+      function selectAccentColor(color) {
+        accentColor = color;
+        if (customAccentControl) {
+          customAccentControl.input.value =
+            HEX_COLOR_PATTERN.test(color) ? color : accentColors.blue;
+        }
+        updateAccentSelection();
+        previewAppearance();
+        saveAppearance();
+      }
+
+      customAccentControl = createCustomColorControl(
+        accentPresets,
+        customAccentColors,
+        customAccentButtons,
+        'accent',
+        accentColors.blue,
+        selectAccentColor
+      );
+      accentRow.appendChild(accentPresets);
 
       const surfaceRow = el('div', 'sm-client-appearance-row sm-accent-row');
       surfaceRow.appendChild(el('span', 'sm-client-appearance-label', {
@@ -512,62 +682,142 @@
       }));
       const surfacePresets = el('div', 'sm-accent-presets');
       let surfaceColor = styleSettings.surface_color;
-      const surfaceButtons = Object.entries(accentColors).map(([name, color]) => {
+      const customSurfaceColors = [
+        ...(styleSettings.custom_surface_colors || [])
+      ];
+      const customSurfaceButtons = [];
+      const surfaceColors = {
+        default: '#151515',
+        ...accentColors
+      };
+      const surfaceButtons = Object.entries(surfaceColors).map(([name, color]) => {
         const button = el('button', 'sm-accent-preset', {
           type: 'button',
           title: name[0].toUpperCase() + name.slice(1)
         });
-        button.setAttribute('aria-label', name + ' cards and active tab color');
+        button.setAttribute(
+          'aria-label',
+          (name === 'default' ? 'Default gray' : name) +
+          ' cards and active tab color'
+        );
         button.style.setProperty('--sm-preset-color', color);
         button.dataset.color = name;
-        button.addEventListener('click', () => {
-          surfaceColor = name;
-          updateSurfaceSelection();
-          previewAppearance();
-          saveAppearance();
-        });
+        button.addEventListener('click', () => selectSurfaceColor(name));
         surfacePresets.appendChild(button);
         return button;
       });
-      surfaceRow.appendChild(surfacePresets);
 
       function updateSurfaceSelection() {
-        surfaceButtons.forEach(button => {
+        [...surfaceButtons, ...customSurfaceButtons].forEach(button => {
           const selected = button.dataset.color === surfaceColor;
           button.classList.toggle('sm-selected', selected);
           button.setAttribute('aria-pressed', String(selected));
         });
       }
 
+      let customSurfaceControl;
+      function selectSurfaceColor(color) {
+        surfaceColor = color;
+        if (customSurfaceControl) {
+          customSurfaceControl.input.value =
+            HEX_COLOR_PATTERN.test(color) ? color : surfaceColors.default;
+        }
+        updateSurfaceSelection();
+        previewAppearance();
+        saveAppearance();
+      }
+
+      customSurfaceControl = createCustomColorControl(
+        surfacePresets,
+        customSurfaceColors,
+        customSurfaceButtons,
+        'cards and active tab',
+        surfaceColors.default,
+        selectSurfaceColor
+      );
+      surfaceRow.appendChild(surfacePresets);
+
       const sidebarLabelsRow = el('div', 'sm-client-appearance-row');
       sidebarLabelsRow.appendChild(el('span', 'sm-client-appearance-label', {
         textContent: 'Sidebar Labels'
       }));
       let sidebarLabels = styleSettings.sidebar_labels;
-      const sidebarLabelsToggle = el('button', 'sm-client-toggle', {
-        type: 'button',
-        title: 'Show or hide sidebar labels'
+      const sidebarLabelsToggle = el(
+        'div',
+        'sm-plugin-toggle-control sm-client-sidebar-label-toggle'
+      );
+      sidebarLabelsToggle.setAttribute('role', 'group');
+      sidebarLabelsToggle.setAttribute('aria-label', 'Sidebar Labels');
+      const sidebarLabelsCheckbox = el('input', 'sm-plugin-checkbox', {
+        type: 'checkbox'
       });
-      sidebarLabelsToggle.setAttribute('role', 'switch');
+      sidebarLabelsCheckbox.setAttribute('aria-hidden', 'true');
+      sidebarLabelsCheckbox.tabIndex = -1;
+      const sidebarLabelsSegment = el('div', 'sm-plugin-seg');
+      const sidebarLabelsPill = el('span', 'sm-plugin-seg-pill');
+      const disableSidebarLabelsButton = el(
+        'button',
+        'sm-plugin-seg-btn sm-plugin-seg-off',
+        {
+          type: 'button',
+          textContent: 'Disabled'
+        }
+      );
+      const enableSidebarLabelsButton = el(
+        'button',
+        'sm-plugin-seg-btn sm-plugin-seg-on',
+        {
+          type: 'button',
+          textContent: 'Enabled'
+        }
+      );
+      sidebarLabelsSegment.append(
+        sidebarLabelsPill,
+        disableSidebarLabelsButton,
+        enableSidebarLabelsButton
+      );
+      sidebarLabelsToggle.append(sidebarLabelsCheckbox, sidebarLabelsSegment);
 
       function updateSidebarLabelsToggle() {
-        sidebarLabelsToggle.setAttribute('aria-checked', String(sidebarLabels));
-        sidebarLabelsToggle.setAttribute(
-          'aria-label',
-          sidebarLabels ? 'Hide sidebar labels' : 'Show sidebar labels'
+        sidebarLabelsCheckbox.checked = sidebarLabels;
+        disableSidebarLabelsButton.classList.toggle(
+          'sm-selected',
+          !sidebarLabels
         );
-        sidebarLabelsToggle.replaceChildren();
-        const track = el('span', 'sm-sidebar-label-track');
-        track.appendChild(el('span', 'sm-sidebar-label-thumb'));
-        sidebarLabelsToggle.appendChild(track);
+        enableSidebarLabelsButton.classList.toggle(
+          'sm-selected',
+          sidebarLabels
+        );
+        disableSidebarLabelsButton.setAttribute(
+          'aria-pressed',
+          String(!sidebarLabels)
+        );
+        enableSidebarLabelsButton.setAttribute(
+          'aria-pressed',
+          String(sidebarLabels)
+        );
         onSidebarLabelsChange?.(sidebarLabels);
       }
 
-      sidebarLabelsToggle.addEventListener('click', () => {
-        sidebarLabels = !sidebarLabels;
+      function setSidebarLabels(enabled) {
+        if (sidebarLabels === enabled) return;
+
+        sidebarLabelsSegment.classList.remove('sm-plugin-seg-go');
+        void sidebarLabelsSegment.offsetWidth;
+        sidebarLabelsSegment.classList.add('sm-plugin-seg-go');
+        sidebarLabels = enabled;
         updateSidebarLabelsToggle();
         saveAppearance();
-      });
+      }
+
+      disableSidebarLabelsButton.addEventListener(
+        'click',
+        () => setSidebarLabels(false)
+      );
+      enableSidebarLabelsButton.addEventListener(
+        'click',
+        () => setSidebarLabels(true)
+      );
       updateSidebarLabelsToggle();
       sidebarLabelsRow.appendChild(sidebarLabelsToggle);
 
@@ -589,17 +839,30 @@
 
       function syncAppearanceInputs() {
         backgroundOpacityInput.value = styleSettings.background_opacity;
-        opacityValue.textContent = styleSettings.background_opacity + '%';
         menuWidthInput.value = styleSettings.menu_width;
-        menuWidthValue.textContent = styleSettings.menu_width + 'px';
         menuHeightInput.value = styleSettings.menu_height;
-        menuHeightValue.textContent = styleSettings.menu_height + 'px';
         cardOpacityInput.value = styleSettings.card_opacity;
-        cardOpacityValue.textContent = styleSettings.card_opacity + '%';
         borderRadiusInput.value = styleSettings.border_radius;
-        borderRadiusValue.textContent = styleSettings.border_radius + 'px';
         accentColor = styleSettings.accent_color;
         surfaceColor = styleSettings.surface_color;
+        customAccentColors.splice(
+          0,
+          customAccentColors.length,
+          ...(styleSettings.custom_accent_colors || [])
+        );
+        customSurfaceColors.splice(
+          0,
+          customSurfaceColors.length,
+          ...(styleSettings.custom_surface_colors || [])
+        );
+        customAccentControl.render();
+        customSurfaceControl.render();
+        customAccentControl.input.value =
+          HEX_COLOR_PATTERN.test(accentColor) ? accentColor : accentColors.blue;
+        customSurfaceControl.input.value =
+          HEX_COLOR_PATTERN.test(surfaceColor)
+            ? surfaceColor
+            : surfaceColors.default;
         sidebarLabels = styleSettings.sidebar_labels;
         updateAccentSelection();
         updateSurfaceSelection();
@@ -645,18 +908,15 @@
           menu_height: menuHeightInput.value,
           card_opacity: cardOpacityInput.value,
           accent_color: accentColor,
+          custom_accent_colors: [...customAccentColors],
           surface_color: surfaceColor,
+          custom_surface_colors: [...customSurfaceColors],
           border_radius: borderRadiusInput.value,
           sidebar_labels: sidebarLabels
         };
       }
 
       function previewAppearance() {
-        opacityValue.textContent = backgroundOpacityInput.value + '%';
-        menuWidthValue.textContent = menuWidthInput.value + 'px';
-        menuHeightValue.textContent = menuHeightInput.value + 'px';
-        cardOpacityValue.textContent = cardOpacityInput.value + '%';
-        borderRadiusValue.textContent = borderRadiusInput.value + 'px';
         updateDefaultStopHighlights();
         updateAccentSelection();
         updateSurfaceSelection();
@@ -686,7 +946,7 @@
         styleSettings = window.SM.storage.loadStyleSettings();
         syncAppearanceInputs();
         onAppearanceChange?.(styleSettings);
-        appearanceStatus.textContent = 'Appearance saved.';
+        appearanceStatus.textContent = '';
       }
 
       updateDefaultStopHighlights();
@@ -714,11 +974,26 @@
 
       let backgroundSettings = initialBackgroundSettings ||
         window.SM.storage.loadBackgroundSettings();
-      const backgroundSelect = el(
-        'select',
-        'sm-css-url-input sm-client-background-select'
+      const backgroundDropdown = el(
+        'details',
+        'sm-client-background-picker'
       );
-      backgroundSelect.setAttribute('aria-label', 'Client background');
+      const backgroundTrigger = el(
+        'summary',
+        'sm-client-background-trigger'
+      );
+      const backgroundLabel = el(
+        'span',
+        'sm-client-background-current'
+      );
+      backgroundTrigger.appendChild(backgroundLabel);
+      backgroundTrigger.setAttribute('aria-label', 'Client background');
+      const backgroundOptions = el(
+        'div',
+        'sm-client-background-options'
+      );
+      backgroundOptions.setAttribute('role', 'listbox');
+      backgroundDropdown.append(backgroundTrigger, backgroundOptions);
       const backgroundInput = el('input', 'sm-css-file-input', {
         type: 'file',
         accept: 'image/png,image/jpeg,image/webp,image/gif',
@@ -751,16 +1026,15 @@
           theykilledher: 'Backgrounds/Tkh.webp',
           behind: 'Backgrounds/Gtmts.webp',
           ophelia: 'Backgrounds/Os.webp',
-          efk: 'Backgrounds/efk.webp'
+          efk: 'Backgrounds/efk.webp',
+          juice: 'Backgrounds/Juice.webp'
         };
 
         return chrome.runtime.getURL(paths[settings.selected] || paths.default);
       }
 
       function renderBackgroundOptions() {
-        backgroundSelect.replaceChildren();
-
-        [
+        const builtInOptions = [
           ['default', 'Default'],
           ['main', 'Main'],
           ['halloween', 'Halloween'],
@@ -768,28 +1042,66 @@
           ['theykilledher', 'They killed her'],
           ['behind', 'Behind'],
           ['ophelia', 'Ophelia'],
-          ['efk', 'Efk']
-        ].forEach(([id, label]) => {
-          backgroundSelect.appendChild(el('option', null, {
-            value: id,
-            textContent: label
-          }));
+          ['efk', 'Efk'],
+          ['juice', 'Juice']
+        ].map(([id, label]) => ({ id, label }));
+        const options = builtInOptions.concat(
+          backgroundSettings.custom.map(background => ({
+            id: background.id,
+            label: background.name
+          }))
+        );
+        const selected = options.find(
+          option => option.id === backgroundSettings.selected
+        ) || options[0];
+        backgroundLabel.textContent = selected.label;
+        backgroundTrigger.setAttribute(
+          'aria-label',
+          'Client background: ' + selected.label
+        );
+        backgroundOptions.replaceChildren();
+
+        options.forEach(option => {
+          const isSelected = option.id === backgroundSettings.selected;
+          const button = el(
+            'button',
+            'sm-client-background-option',
+            { type: 'button' }
+          );
+          button.setAttribute('role', 'option');
+          button.setAttribute('aria-selected', String(isSelected));
+
+          const preview = el('img', 'sm-client-background-preview', {
+            src: backgroundUrl({
+              ...backgroundSettings,
+              selected: option.id
+            }),
+            alt: ''
+          });
+          preview.loading = 'lazy';
+          const label = el('span', null, { textContent: option.label });
+          const check = el('span', 'sm-client-background-check', {
+            textContent: isSelected ? '✓' : ''
+          });
+          check.setAttribute('aria-hidden', 'true');
+          button.append(preview, label, check);
+          button.addEventListener('click', () => {
+            backgroundDropdown.open = false;
+            backgroundTrigger.focus();
+            void saveBackgroundSettings({
+              ...backgroundSettings,
+              selected: option.id
+            });
+          });
+          backgroundOptions.appendChild(button);
         });
 
-        backgroundSettings.custom.forEach(background => {
-          backgroundSelect.appendChild(el('option', null, {
-            value: background.id,
-            textContent: background.name
-          }));
-        });
-
-        backgroundSelect.value = backgroundSettings.selected;
         removeBackgroundButton.hidden = !backgroundSettings.custom.some(
           background => background.id === backgroundSettings.selected
         );
       }
 
-      async function saveBackgroundSettings(nextSettings, message) {
+      async function saveBackgroundSettings(nextSettings) {
         if (!await window.SM.storage.saveBackgroundSettings(nextSettings)) {
           backgroundStatus.textContent =
             'Could not save background settings. Check available browser storage.';
@@ -799,7 +1111,7 @@
 
         backgroundSettings = nextSettings;
         onBackgroundChange?.(backgroundUrl(backgroundSettings));
-        backgroundStatus.textContent = message;
+        backgroundStatus.textContent = '';
         renderBackgroundOptions();
         return true;
       }
@@ -823,11 +1135,10 @@
         });
       }
 
-      backgroundSelect.addEventListener('change', async () => {
-        await saveBackgroundSettings({
-          ...backgroundSettings,
-          selected: backgroundSelect.value
-        }, 'Background saved.');
+      document.addEventListener('click', event => {
+        if (!backgroundDropdown.contains(event.target)) {
+          backgroundDropdown.open = false;
+        }
       });
 
       backgroundInput.addEventListener('change', async () => {
@@ -865,15 +1176,13 @@
           custom: backgroundSettings.custom.concat(additions),
           selected: additions[additions.length - 1].id
         };
-        const saved = await saveBackgroundSettings(
-          nextSettings,
-          errors.length
-            ? 'Backgrounds saved. Some files failed: ' + errors.join('; ')
-            : 'Background uploaded and saved.'
-        );
+        const saved = await saveBackgroundSettings(nextSettings);
 
         if (!saved && errors.length) {
           backgroundStatus.textContent += ' Upload errors: ' + errors.join('; ');
+        } else if (saved && errors.length) {
+          backgroundStatus.textContent =
+            'Some images could not be uploaded: ' + errors.join('; ');
         }
       });
 
@@ -885,20 +1194,40 @@
           selected: 'default'
         };
 
-        await saveBackgroundSettings(
-          nextSettings,
-          'Uploaded background removed.'
-        );
+        await saveBackgroundSettings(nextSettings);
       });
 
       renderBackgroundOptions();
       backgrounds.append(
         backgroundsHead,
-        backgroundSelect,
+        backgroundDropdown,
         backgroundInput,
         removeBackgroundButton,
         backgroundStatus
       );
+
+      backgroundDropdown.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && backgroundDropdown.open) {
+          event.preventDefault();
+          backgroundDropdown.open = false;
+          backgroundTrigger.focus();
+          return;
+        }
+
+        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+        event.preventDefault();
+        backgroundDropdown.open = true;
+        const options = Array.from(
+          backgroundOptions.querySelectorAll('button[role="option"]')
+        );
+        if (!options.length) return;
+
+        const currentIndex = options.indexOf(document.activeElement);
+        const nextIndex = event.key === 'ArrowDown'
+          ? (currentIndex + 1) % options.length
+          : (currentIndex <= 0 ? options.length - 1 : currentIndex - 1);
+        options[nextIndex].focus();
+      });
 
       const resetCard = el('div', 'sm-card');
       const resetHead = el('div', 'sm-card-head');
@@ -916,6 +1245,31 @@
       });
       resetCard.append(resetHead, resetButton);
 
+      const welcomeCard = el('div', 'sm-card');
+      const welcomeHead = el('div', 'sm-card-head');
+      welcomeHead.append(
+        el('div', 'sm-card-title', {
+          textContent: "I messed up, I don't know what I'm doing"
+        }),
+        el('div', 'sm-card-desc', {
+          textContent:
+            'Bring back the Hydrogen welcome screen and its quick-start guide.'
+        })
+      );
+      const restoreWelcomeButton = el('button', 'sm-plugin-button', {
+        type: 'button',
+        textContent: 'Show welcome screen again'
+      });
+      restoreWelcomeButton.addEventListener('click', () => {
+        if (onRestoreWelcome?.() !== true) {
+          status.textContent =
+            'Could not restore the welcome screen setting. Check browser storage.';
+          return;
+        }
+        status.textContent = '';
+      });
+      welcomeCard.append(welcomeHead, restoreWelcomeButton);
+
       const exportCard = el('div', 'sm-card');
       const exportHead = el('div', 'sm-card-head');
       exportHead.append(
@@ -932,7 +1286,8 @@
       exportCard.append(exportHead, exportButton);
 
       const importCard = el('div', 'sm-card');
-      const importHead = el('div', 'sm-card-head');
+      const importDetails = el('details', 'sm-raw-css-details');
+      const importHead = el('summary', 'sm-card-head sm-raw-css-summary');
       importHead.append(
         el('div', 'sm-card-title', { textContent: 'Import Settings' }),
         el('div', 'sm-card-desc', {
@@ -940,6 +1295,7 @@
             'Choose a Hydrogen JSON file. Importing replaces your current Hydrogen settings.'
         })
       );
+      importDetails.appendChild(importHead);
 
       const importInput = el('input', 'sm-css-file-input', {
         type: 'file',
@@ -961,7 +1317,13 @@
         type: 'button',
         textContent: 'Import Pasted Settings'
       });
-      importCard.append(importHead, importInput, importOr, importText, importTextButton);
+      importDetails.append(
+        importInput,
+        importOr,
+        importText,
+        importTextButton
+      );
+      importCard.appendChild(importDetails);
 
       const status = el('div', 'sm-plugin-status');
       status.setAttribute('role', 'status');
@@ -975,6 +1337,7 @@
       root.append(
         appearanceCard,
         backgrounds,
+        welcomeCard,
         resetCard,
         exportCard,
         importCard,
@@ -988,7 +1351,7 @@
         }
 
         resetButton.disabled = true;
-        status.textContent = 'Resetting settings...';
+        status.textContent = '';
 
         try {
           if (!window.SM.storage.saveCss('')) {
@@ -1009,7 +1372,10 @@
             menu_height: '660',
             card_opacity: '60',
             accent_color: 'blue',
-            surface_color: 'blue',
+            custom_accent_colors: [],
+            surface_color: 'default',
+            custom_surface_colors: [],
+            surface_color_version: 1,
             border_radius: '16',
             sidebar_labels: true
           })) {
@@ -1048,8 +1414,7 @@
           onBackgroundChange?.(backgroundUrl(backgroundSettings));
           onAppearanceChange?.(styleSettings);
           renderBackgroundOptions();
-          status.textContent =
-            'Settings reset. All plugins are off. Reload the page to apply.';
+          status.textContent = '';
           reloadButton.hidden = false;
         } catch (error) {
           console.error('[Client Settings] Reset failed:', error);
@@ -1076,7 +1441,7 @@
           link.click();
           link.remove();
           setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-          status.textContent = 'Settings exported.';
+          status.textContent = '';
         } catch (error) {
           console.error('[Client Settings] Export failed:', error);
           status.textContent = 'Export failed: ' + error.message;
@@ -1139,8 +1504,7 @@
             );
           });
 
-          status.textContent =
-            'Settings imported. Reload the page to apply all imported settings.';
+          status.textContent = '';
           reloadButton.hidden = false;
           return true;
         } catch (error) {

@@ -62,7 +62,7 @@
       event.stopPropagation();
 
       if (event.code === 'Escape') {
-        stopRecording('Shortcut change cancelled.');
+        stopRecording('');
         return;
       }
 
@@ -78,12 +78,13 @@
       }
 
       hotkey = nextHotkey;
-      stopRecording('Shortcut saved.');
+      window.dispatchEvent(new CustomEvent('hydrogen-hotkey-change'));
+      stopRecording('');
     }
 
     capture.addEventListener('click', () => {
       if (recording) {
-        stopRecording('Shortcut change cancelled.');
+        stopRecording('');
         return;
       }
       recording = !recording;

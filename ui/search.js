@@ -3,20 +3,21 @@
   const el = window.SM.el;
 
   const ICON_PATHS = {
-    search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>'
+    search: 'M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4 457.4 502.6 330.7 376c-34.4 25.1-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0s208 93.1 208 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z'
   };
 
   function svgIcon(name) {
-    return '<svg class="sm-svg" viewBox="0 0 24 24" aria-hidden="true">' +
+    return '<svg class="sm-svg sm-search-icon fa-solid fa-magnifying-glass" ' +
+      'viewBox="0 0 512 512" aria-hidden="true"><path d="' +
       (ICON_PATHS[name] || '') +
-      '</svg>';
+      '"/></svg>';
   }
 
   const pluginEntries = [
   {
     id: 'custom-player-color',
     title: 'Custom Player Color',
-    desc: 'Player skin colors, head color, body color, player appearance',
+    desc: 'Player skin colors, head color, body color, player appearance, upload texture',
     label: 'Plugins',
     item: {
       tab: 'plugins',
@@ -139,7 +140,7 @@
 
   setIndex([]);
 
-  window.SM.buildSearch = function ({ onPick }) {
+  window.SM.buildSearch = function ({ onPick, isFavorited }) {
     const wrap = el('div', 'sm-search');
     const field = el('div', 'sm-search-field');
 
@@ -226,12 +227,21 @@
 
       hits.slice(0, 8).forEach((hit, index) => {
         const row = el('div', 'sm-search-item');
+        const title = el('span', 'sm-search-title', {
+          textContent: hit.title
+        });
 
-        row.appendChild(
-          el('span', null, {
-            textContent: hit.title
-          })
-        );
+        row.appendChild(title);
+
+        if (typeof isFavorited === 'function' && isFavorited(hit)) {
+          row.classList.add('sm-favorited');
+          const marker = el('span', 'sm-search-favorite', {
+            textContent: '♥',
+            title: 'Favorited'
+          });
+          marker.setAttribute('aria-hidden', 'true');
+          row.appendChild(marker);
+        }
 
         row.appendChild(
           el('span', 'sm-search-tab', {

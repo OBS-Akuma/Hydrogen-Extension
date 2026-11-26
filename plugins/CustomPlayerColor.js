@@ -50,10 +50,16 @@
         try {
             localStorage.setItem(
                 'sm_plugin_' + PLUGIN_ID,
-                JSON.stringify({ enabled, headColor, bodyColor })
+                JSON.stringify({
+                    enabled,
+                    headColor,
+                    bodyColor
+                })
             );
+            return true;
         } catch (error) {
             console.error('[Custom Player Color] Could not save settings:', error);
+            return false;
         }
     }
 
@@ -91,6 +97,18 @@
         );
     }
 
+    function setTextureSource(map, image, source) {
+        if (image.src !== source) {
+            image.addEventListener('load', () => {
+                if (map.image === image && image.src === source) {
+                    map.needsUpdate = true;
+                }
+            }, { once: true });
+            image.src = source;
+        }
+        map.needsUpdate = true;
+    }
+
     function replaceTexture(map) {
         if (!enabled || !map || !map.image) return;
 
@@ -106,10 +124,7 @@
             });
         }
 
-        if (image.src !== playerTexture) {
-            image.src = playerTexture;
-            map.needsUpdate = true;
-        }
+        setTextureSource(map, image, playerTexture);
     }
 
     function updateTrackedTextures() {
@@ -119,11 +134,11 @@
                 continue;
             }
 
-            saved.image.src = enabled
-                ? playerTexture
-                : saved.originalSrc;
-
-            map.needsUpdate = true;
+            setTextureSource(
+                map,
+                saved.image,
+                enabled ? playerTexture : saved.originalSrc
+            );
         }
     }
 
@@ -309,12 +324,6 @@
 
         header.append(heading, toggle.root);
 
-        const status = el(
-            'div',
-            'sm-plugin-status',
-            enabled ? 'Enabled' : 'Disabled'
-        );
-
         const colorSettings = el('div', 'sm-plugin-settings');
 
         const headSetting = createColorSetting(
@@ -366,8 +375,6 @@
         toggle.root.addEventListener('hydrogen-toggle', event => {
             const isEnabled = event.detail.enabled;
 
-            status.textContent = isEnabled ? 'Enabled' : 'Disabled';
-
             colorSettings.classList.toggle(
                 'sm-plugin-disabled',
                 !isEnabled
@@ -378,7 +385,7 @@
             colorSettings.classList.add('sm-plugin-disabled');
         }
 
-        card.append(header, status, colorSettings);
+        card.append(header, colorSettings);
 
         return card;
     }
