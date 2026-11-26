@@ -135,6 +135,10 @@
           ['blue', 'purple', 'green', 'orange', 'pink'].includes(style.accent_color)
         ) ||
         !(
+          style.surface_color === undefined ||
+          ['blue', 'purple', 'green', 'orange', 'pink'].includes(style.surface_color)
+        ) ||
+        !(
           style.border_radius === undefined ||
           /^(?:0|[1-9]|1[0-9]|20)$/.test(String(style.border_radius))
         ) ||
@@ -261,7 +265,8 @@
       initialBackgroundSettings,
       initialStyleSettings,
       onBackgroundChange,
-      onAppearanceChange
+      onAppearanceChange,
+      onSidebarLabelsChange
     } = {}) {
       const root = el('div', 'sm-tab-content');
       root.id = 'tab-client';
@@ -501,6 +506,71 @@
         });
       }
 
+      const surfaceRow = el('div', 'sm-client-appearance-row sm-accent-row');
+      surfaceRow.appendChild(el('span', 'sm-client-appearance-label', {
+        textContent: 'Cards & Active Tab Color'
+      }));
+      const surfacePresets = el('div', 'sm-accent-presets');
+      let surfaceColor = styleSettings.surface_color;
+      const surfaceButtons = Object.entries(accentColors).map(([name, color]) => {
+        const button = el('button', 'sm-accent-preset', {
+          type: 'button',
+          title: name[0].toUpperCase() + name.slice(1)
+        });
+        button.setAttribute('aria-label', name + ' cards and active tab color');
+        button.style.setProperty('--sm-preset-color', color);
+        button.dataset.color = name;
+        button.addEventListener('click', () => {
+          surfaceColor = name;
+          updateSurfaceSelection();
+          previewAppearance();
+          saveAppearance();
+        });
+        surfacePresets.appendChild(button);
+        return button;
+      });
+      surfaceRow.appendChild(surfacePresets);
+
+      function updateSurfaceSelection() {
+        surfaceButtons.forEach(button => {
+          const selected = button.dataset.color === surfaceColor;
+          button.classList.toggle('sm-selected', selected);
+          button.setAttribute('aria-pressed', String(selected));
+        });
+      }
+
+      const sidebarLabelsRow = el('div', 'sm-client-appearance-row');
+      sidebarLabelsRow.appendChild(el('span', 'sm-client-appearance-label', {
+        textContent: 'Sidebar Labels'
+      }));
+      let sidebarLabels = styleSettings.sidebar_labels;
+      const sidebarLabelsToggle = el('button', 'sm-client-toggle', {
+        type: 'button',
+        title: 'Show or hide sidebar labels'
+      });
+      sidebarLabelsToggle.setAttribute('role', 'switch');
+
+      function updateSidebarLabelsToggle() {
+        sidebarLabelsToggle.setAttribute('aria-checked', String(sidebarLabels));
+        sidebarLabelsToggle.setAttribute(
+          'aria-label',
+          sidebarLabels ? 'Hide sidebar labels' : 'Show sidebar labels'
+        );
+        sidebarLabelsToggle.replaceChildren();
+        const track = el('span', 'sm-sidebar-label-track');
+        track.appendChild(el('span', 'sm-sidebar-label-thumb'));
+        sidebarLabelsToggle.appendChild(track);
+        onSidebarLabelsChange?.(sidebarLabels);
+      }
+
+      sidebarLabelsToggle.addEventListener('click', () => {
+        sidebarLabels = !sidebarLabels;
+        updateSidebarLabelsToggle();
+        saveAppearance();
+      });
+      updateSidebarLabelsToggle();
+      sidebarLabelsRow.appendChild(sidebarLabelsToggle);
+
       const appearanceStatus = el('div', 'sm-plugin-status');
       appearanceStatus.setAttribute('role', 'status');
       appearanceStatus.setAttribute('aria-live', 'polite');
@@ -512,6 +582,8 @@
         cardOpacityRow,
         borderRadiusRow,
         accentRow,
+        surfaceRow,
+        sidebarLabelsRow,
         appearanceStatus
       );
 
@@ -527,7 +599,11 @@
         borderRadiusInput.value = styleSettings.border_radius;
         borderRadiusValue.textContent = styleSettings.border_radius + 'px';
         accentColor = styleSettings.accent_color;
+        surfaceColor = styleSettings.surface_color;
+        sidebarLabels = styleSettings.sidebar_labels;
         updateAccentSelection();
+        updateSurfaceSelection();
+        updateSidebarLabelsToggle();
         updateDefaultStopHighlights();
         [
           backgroundOpacityControl,
@@ -557,7 +633,7 @@
         );
         borderRadiusInput.classList.toggle(
           'sm-at-stop',
-          Number(borderRadiusInput.value) === 8
+          Number(borderRadiusInput.value) === 16
         );
       }
 
@@ -569,7 +645,9 @@
           menu_height: menuHeightInput.value,
           card_opacity: cardOpacityInput.value,
           accent_color: accentColor,
-          border_radius: borderRadiusInput.value
+          surface_color: surfaceColor,
+          border_radius: borderRadiusInput.value,
+          sidebar_labels: sidebarLabels
         };
       }
 
@@ -580,6 +658,8 @@
         cardOpacityValue.textContent = cardOpacityInput.value + '%';
         borderRadiusValue.textContent = borderRadiusInput.value + 'px';
         updateDefaultStopHighlights();
+        updateAccentSelection();
+        updateSurfaceSelection();
         [
           backgroundOpacityControl,
           menuWidthControl,
@@ -611,6 +691,7 @@
 
       updateDefaultStopHighlights();
       updateAccentSelection();
+      updateSurfaceSelection();
       backgroundOpacityInput.addEventListener('input', previewAppearance);
       backgroundOpacityInput.addEventListener('change', saveAppearance);
       menuWidthInput.addEventListener('input', previewAppearance);
@@ -928,7 +1009,8 @@
             menu_height: '660',
             card_opacity: '60',
             accent_color: 'blue',
-            border_radius: '8',
+            surface_color: 'blue',
+            border_radius: '16',
             sidebar_labels: true
           })) {
             throw new Error('Could not reset the Style tab settings.');

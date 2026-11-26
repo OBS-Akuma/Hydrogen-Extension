@@ -220,6 +220,7 @@
         menu_height: currentSettings.menu_height,
         card_opacity: currentSettings.card_opacity,
         accent_color: currentSettings.accent_color,
+        surface_color: currentSettings.surface_color,
         border_radius: currentSettings.border_radius,
         sidebar_labels: currentSettings.sidebar_labels
       };

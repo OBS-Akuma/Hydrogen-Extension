@@ -54,16 +54,7 @@
       if (isTyping(event.target)) return;
 
       const hotkey = window.SM.storage.loadHotkey();
-      const modifierKey = /^(?:Shift|Control|Alt|Meta)(?:Left|Right)$/.test(
-        event.code
-      );
-      if (
-        event.code === hotkey.code &&
-        event.ctrlKey === hotkey.ctrl &&
-        event.altKey === hotkey.alt &&
-        (modifierKey ? false : event.shiftKey) === hotkey.shift &&
-        event.metaKey === hotkey.meta
-      ) {
+      if (event.code === hotkey.code) {
         event.preventDefault();
         menu.toggle();
       }

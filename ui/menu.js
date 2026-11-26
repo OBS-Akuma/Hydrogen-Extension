@@ -10,6 +10,13 @@
     orange: '#f97316',
     pink: '#ec4899'
   };
+  const ACCENT_RGB = {
+    blue: '43, 176, 255',
+    purple: '168, 85, 247',
+    green: '34, 197, 94',
+    orange: '249, 115, 22',
+    pink: '236, 72, 153'
+  };
 
   window.SM.createMenu = function (cardInfo = {}) {
     const overlay = el('div', 'sm-root sm-overlay');
@@ -40,21 +47,16 @@
         Number(settings.border_radius) >= 0 &&
         Number(settings.border_radius) <= 20
         ? Number(settings.border_radius)
-        : 8;
+        : 16;
 
       win.style.width = menuWidth + 'px';
       win.style.height = menuHeight + 'px';
       win.style.setProperty('--sm-card-opacity', String(cardOpacity / 100));
       win.style.setProperty('--sm-blue', accentColor);
-      win.style.setProperty('--sm-blue-rgb', {
-        '#2bb0ff': '43, 176, 255',
-        '#a855f7': '168, 85, 247',
-        '#22c55e': '34, 197, 94',
-        '#f97316': '249, 115, 22',
-        '#ec4899': '236, 72, 153'
-      }[accentColor]);
+      win.style.setProperty('--sm-blue-rgb', ACCENT_RGB[settings.accent_color] || ACCENT_RGB.blue);
+      win.style.setProperty('--sm-surface-rgb', ACCENT_RGB[settings.surface_color] || ACCENT_RGB.blue);
       win.style.setProperty('--sm-radius', borderRadius + 'px');
-      win.style.setProperty('--sm-window-radius', (borderRadius + 4) + 'px');
+      win.style.setProperty('--sm-window-radius', borderRadius + 'px');
       win.style.setProperty(
         '--sm-bg-tint',
         `rgba(10, 10, 10, ${backgroundOpacity / 100})`
@@ -122,7 +124,6 @@
         }
 
         requestFullscreen.call(document.documentElement)
-          .then(hide)
           .catch(error => {
             console.error('[SM] Could not enter website fullscreen:', error);
           });
@@ -191,17 +192,13 @@
 
     const main = el('div', 'sm-main');
 
-    const sidebar = window.SM.buildSidebar({
+    const sidebarControls = window.SM.buildSidebar({
       active: activeTab,
       version: VERSION,
-      initialLabels: styleSettings.sidebar_labels,
-      onSelect: switchTab,
-      onLabelsChange: async enabled => {
-        const settings = window.SM.storage.loadStyleSettings();
-        settings.sidebar_labels = enabled;
-        return window.SM.storage.saveStyleSettings(settings);
-      }
+      onSelect: switchTab
     });
+    const sidebar = sidebarControls.root;
+    sidebarControls.setLabels(styleSettings.sidebar_labels);
 
     main.appendChild(sidebar);
 
@@ -234,7 +231,8 @@
       initialBackgroundSettings: backgroundSettings,
       initialStyleSettings: styleSettings,
       onBackgroundChange: setBackground,
-      onAppearanceChange: setAppearance
+      onAppearanceChange: setAppearance,
+      onSidebarLabelsChange: sidebarControls.setLabels
     });
     content.appendChild(clientTab.root);
 
@@ -502,6 +500,7 @@
         'http://www.w3.org/2000/svg',
         'svg'
       );
+      icon.classList.add('fa-solid', 'fa-heart');
       icon.setAttribute('viewBox', '0 0 24 24');
       icon.setAttribute('aria-hidden', 'true');
       const path = document.createElementNS(
@@ -510,7 +509,7 @@
       );
       path.setAttribute(
         'd',
-        'M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z'
+        'M12 21.35 10.55 20C5.4 15.36 2 12.28 2 8.5A5.5 5.5 0 0 1 7.5 3c1.74 0 3.41.81 4.5 2.09A5.98 5.98 0 0 1 16.5 3 5.5 5.5 0 0 1 22 8.5c0 3.78-3.4 6.86-8.55 11.51L12 21.35Z'
       );
       icon.appendChild(path);
       button.appendChild(icon);
@@ -546,8 +545,8 @@
 
     function updateCardInfo() {
       overlay.querySelectorAll('.sm-card').forEach(card => {
-        addFavoriteButton(card);
         addCardInfo(card);
+        addFavoriteButton(card);
       });
       renderFavorites();
     }

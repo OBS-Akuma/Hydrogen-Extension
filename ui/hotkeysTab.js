@@ -2,12 +2,6 @@
   const el = window.SM.el;
 
   function formatHotkey(hotkey) {
-    const modifiers = [];
-    if (hotkey.ctrl) modifiers.push('Ctrl');
-    if (hotkey.alt) modifiers.push('Alt');
-    if (hotkey.shift) modifiers.push('Shift');
-    if (hotkey.meta) modifiers.push('Meta');
-
     const keyNames = {
       ShiftLeft: 'Left Shift',
       ShiftRight: 'Right Shift',
@@ -19,11 +13,8 @@
       MetaRight: 'Right Meta',
       Space: 'Space'
     };
-    const key = keyNames[hotkey.code] ||
+    return keyNames[hotkey.code] ||
       hotkey.code.replace(/^(Key|Digit|Numpad)/, '');
-
-    if (!modifiers.includes(key.split(' ')[0])) modifiers.push(key);
-    return modifiers.join(' + ');
   }
 
   window.SM.buildHotkeysTab = function () {
@@ -35,7 +26,7 @@
     head.append(
       el('div', 'sm-card-title', { textContent: 'Menu Hotkey' }),
       el('div', 'sm-card-desc', {
-        textContent: 'Choose a key or key combination to open and close Hydrogen.'
+        textContent: 'Choose one key to open and close Hydrogen.'
       })
     );
 
@@ -54,26 +45,18 @@
     function render() {
       value.textContent = formatHotkey(hotkey);
       capture.classList.toggle('sm-recording', recording);
-      capture.textContent = recording ? 'Press a key combination…' : 'Change shortcut';
+      capture.textContent = recording ? 'Press one key…' : 'Change shortcut';
       capture.setAttribute('aria-pressed', String(recording));
     }
 
     function stopRecording(message) {
       recording = false;
+      document.removeEventListener('keydown', recordKey, true);
       render();
       status.textContent = message;
     }
 
-    capture.addEventListener('click', () => {
-      recording = !recording;
-      render();
-      status.textContent = recording
-        ? 'Press any non-modifier key, or press Escape to cancel.'
-        : '';
-      if (recording) capture.focus();
-    });
-
-    capture.addEventListener('keydown', event => {
+    function recordKey(event) {
       if (!recording) return;
       event.preventDefault();
       event.stopPropagation();
@@ -83,16 +66,12 @@
         return;
       }
 
-      if (['Control', 'Alt', 'Shift', 'Meta'].includes(event.key)) return;
+      if (!event.code || !/^[A-Za-z][A-Za-z0-9]{0,39}$/.test(event.code)) {
+        status.textContent = 'That key cannot be used. Press one other key.';
+        return;
+      }
 
-      const nextHotkey = {
-        code: event.code,
-        ctrl: event.ctrlKey,
-        alt: event.altKey,
-        shift: event.shiftKey,
-        meta: event.metaKey
-      };
-
+      const nextHotkey = { code: event.code };
       if (!window.SM.storage.saveHotkey(nextHotkey)) {
         stopRecording('Could not save the shortcut.');
         return;
@@ -100,6 +79,21 @@
 
       hotkey = nextHotkey;
       stopRecording('Shortcut saved.');
+    }
+
+    capture.addEventListener('click', () => {
+      if (recording) {
+        stopRecording('Shortcut change cancelled.');
+        return;
+      }
+      recording = !recording;
+      render();
+      status.textContent = recording
+        ? 'Press a single key. Press Escape to cancel.'
+        : '';
+      if (recording) {
+        document.addEventListener('keydown', recordKey, true);
+      }
     });
 
     row.append(value, capture);
