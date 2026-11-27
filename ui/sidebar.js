@@ -134,6 +134,7 @@
     onSelect
   }) {
     const sidebar = el('div', 'sm-sidebar');
+    const nav = el('div', 'sm-sidebar-nav');
     const tabButtons = new Map();
     const tabGroups = new Map();
 
@@ -142,7 +143,7 @@
         textContent: group.title
       });
       groupTitle.dataset.sidebarLabel = 'true';
-      sidebar.appendChild(groupTitle);
+      nav.appendChild(groupTitle);
       const groupTabs = [];
 
       group.tabs.forEach(tab => {
@@ -164,7 +165,7 @@
           el('span', 'sm-tab-label', { textContent: tab.label })
         );
         btn.addEventListener('click', () => onSelect(tab.id));
-        sidebar.appendChild(btn);
+        nav.appendChild(btn);
       });
 
       tabGroups.set(group.title, {
@@ -172,6 +173,8 @@
         buttons: groupTabs
       });
     });
+
+    sidebar.appendChild(nav);
 
     const links = el('div', 'sm-sidebar-links');
     [

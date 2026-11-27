@@ -647,7 +647,15 @@
   flex-direction: column;
   padding: 12px 12px 14px;
   border-right: 1px solid var(--sm-line);
+  overflow: hidden;
+}
+
+.sm-sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sm-sidebar-tab-icon {
@@ -758,6 +766,7 @@
 }
 
 .sm-sidebar-promo {
+  flex-shrink: 0;
   position: relative;
   width: 100%;
   height: 72px;
@@ -825,6 +834,7 @@
 }
 
 .sm-sidebar-links {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -857,6 +867,7 @@
 }
 
 .sm-sidebar-version {
+  flex-shrink: 0;
   margin-top: 0;
   padding: 8px 8px 0;
   font-size: 0.78rem;
