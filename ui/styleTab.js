@@ -78,6 +78,16 @@
           textContent: formatStop(value)
         });
         stopLabel.dataset.value = String(value);
+        const position = (
+          (Number(value) - Number(slider.min)) /
+          (Number(slider.max) - Number(slider.min))
+        ) * 100;
+        stopLabel.style.left = position + '%';
+        stopLabel.style.transform = position === 0
+          ? 'translateX(0)'
+          : position === 100
+            ? 'translateX(-100%)'
+            : 'translateX(-50%)';
         labels.appendChild(stopLabel);
         return stopLabel;
       });
@@ -224,7 +234,8 @@
         surface_color: currentSettings.surface_color,
         custom_surface_colors: currentSettings.custom_surface_colors,
         border_radius: currentSettings.border_radius,
-        sidebar_labels: currentSettings.sidebar_labels
+        sidebar_labels: currentSettings.sidebar_labels,
+        font_family: currentSettings.font_family
       };
     }
 
@@ -570,6 +581,53 @@
     root.appendChild(filesCard);
     root.appendChild(interfaceCard);
 
+    function addFile(name, css, enabled = true) {
+      if (
+        typeof name !== 'string' ||
+        !name ||
+        typeof css !== 'string'
+      ) {
+        return false;
+      }
+
+      const existing = uploadedFiles.find(file => file.name === name);
+      if (existing) {
+        existing.css = css;
+        existing.size = new Blob([css]).size;
+        existing.enabled = enabled;
+        window.SM.injector.updateFile(name, css);
+        window.SM.injector.setFileEnabled(name, enabled);
+      } else {
+        const uploadedFile = {
+          name,
+          size: new Blob([css]).size,
+          css,
+          enabled
+        };
+        uploadedFiles.push(uploadedFile);
+        window.SM.injector.addFile(name, css, enabled);
+      }
+
+      saveSettings();
+      updateFileList();
+      return true;
+    }
+
+    function hasFile(name) {
+      return uploadedFiles.some(file => file.name === name);
+    }
+
+    function removeFile(name) {
+      const file = uploadedFiles.find(item => item.name === name);
+      if (!file) return false;
+
+      window.SM.injector.removeFile(name);
+      uploadedFiles.splice(uploadedFiles.indexOf(file), 1);
+      saveSettings();
+      updateFileList();
+      return true;
+    }
+
     const persist = () => {
       window.SM.injector.schedule(ta.value);
       window.SM.storage.saveCss(ta.value);
@@ -606,6 +664,6 @@
       }
     );
 
-    return { root, textarea: ta };
+    return { root, textarea: ta, addFile, hasFile, removeFile };
   };
 })();

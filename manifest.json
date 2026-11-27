@@ -47,6 +47,8 @@
         "Backgrounds/Os.webp",
         "Backgrounds/efk.webp",
         "Backgrounds/Juice.webp",
+        "Fonts/Kanit-Regular.ttf",
+        "Fonts/OpenDyslexic-Regular.ttf",
         "json/CardInfo.json"
       ],
       "matches": [
@@ -93,6 +95,7 @@
         "ui/search.js",
         "ui/sidebar.js",
         "ui/styleTab.js",
+        "ui/themeLibraryTab.js",
         "ui/clientTab.js",
         "ui/hotkeysTab.js",
         "ui/changelogTab.js",

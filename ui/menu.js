@@ -158,6 +158,13 @@
         Number(settings.border_radius) <= 20
         ? Number(settings.border_radius)
         : 16;
+      const fontFamilies = {
+        kanit: '"Kanit","Rubik","Inter",system-ui,sans-serif',
+        'gill-sans-mt': '"Gill Sans MT","Gill Sans","Trebuchet MS",sans-serif',
+        'open-dyslexic': '"OpenDyslexic","Gill Sans MT","Trebuchet MS",sans-serif'
+      };
+      const fontFamily = fontFamilies[settings.font_family] ||
+        fontFamilies.kanit;
 
       win.style.width = menuWidth + 'px';
       win.style.height = menuHeight + 'px';
@@ -179,6 +186,8 @@
       }[settings.surface_color] || surface.active || '#1c1c1c');
       win.style.setProperty('--sm-radius', borderRadius + 'px');
       win.style.setProperty('--sm-window-radius', borderRadius + 'px');
+      win.style.setProperty('--sm-font-family', fontFamily);
+      overlay.style.setProperty('--sm-font-family', fontFamily);
       win.style.setProperty(
         '--sm-bg-tint',
         `rgba(10, 10, 10, ${backgroundOpacity / 100})`
@@ -364,6 +373,7 @@
       active: activeTab,
       version: VERSION,
       versionTarget: topbar.querySelector('.sm-title-version'),
+      topbarUpdateSlot: topbar.querySelector('.sm-topbar-update-slot'),
       onSelect: switchTab
     });
     const sidebar = sidebarControls.root;
@@ -385,6 +395,19 @@
     const changelogTab = window.SM.buildChangelogTab({
       onSelectTab: switchTab,
       welcomeDismissed,
+      initialFont: styleSettings.font_family,
+      onFontChange: font => {
+        const currentSettings = window.SM.storage.loadStyleSettings();
+        const nextSettings = {
+          ...currentSettings,
+          font_family: font
+        };
+        setAppearance(nextSettings);
+        window.SM.storage.saveStyleSettings(nextSettings);
+        window.dispatchEvent(new CustomEvent('hydrogen-font-change', {
+          detail: { font: font }
+        }));
+      },
       onDismissWelcome: () => {
         if (!saveWelcomeDismissed(true)) return false;
         sidebarControls.setTabLabel('changelog', 'Changelog');
@@ -405,6 +428,12 @@
 
     content.appendChild(styleTab.root);
 
+    const themeLibraryTab = window.SM.buildThemeLibraryTab({
+      styleTab
+    });
+    themeLibraryTab.root.classList.remove('sm-active');
+    content.appendChild(themeLibraryTab.root);
+
     const pluginsTab = el('div', 'sm-tab-content');
     pluginsTab.id = 'tab-plugins';
 
@@ -423,7 +452,10 @@
       initialBackgroundSettings: backgroundSettings,
       initialStyleSettings: styleSettings,
       onBackgroundChange: setBackground,
-      onAppearanceChange: setAppearance,
+      onAppearanceChange: settings => {
+        setAppearance(settings);
+        changelogTab.setFont?.(settings.font_family);
+      },
       onSidebarLabelsChange: sidebarControls.setLabels,
       onRestoreWelcome: () => {
         if (!saveWelcomeDismissed(false)) return false;

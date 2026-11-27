@@ -31,6 +31,8 @@
   window.SM.buildChangelogTab = function ({
     onSelectTab,
     onDismissWelcome,
+    initialFont = 'kanit',
+    onFontChange,
     welcomeDismissed = false
   }) {
     const root = el('div', 'sm-tab-content sm-active sm-changelog-tab');
@@ -51,6 +53,62 @@
           'Personalize your game, discover useful features, and make the menu yours. Pick a place to begin.'
       })
     );
+
+    const fontRow = el(
+      'div',
+      'sm-changelog-start-item sm-changelog-font-row'
+    );
+    const fontDetails = el('div', 'sm-changelog-start-details');
+    fontDetails.append(
+      el('div', 'sm-changelog-start-title', {
+        textContent: 'Menu font'
+      }),
+      el('div', 'sm-changelog-start-description', {
+        textContent: 'Choose a font for the Hydrogen menu.'
+      })
+    );
+    let selectedFont = ['kanit', 'gill-sans-mt', 'open-dyslexic'].includes(
+      initialFont
+    ) ? initialFont : 'kanit';
+    const fontChoices = [
+      { value: 'kanit', label: 'Kanit' },
+      { value: 'gill-sans-mt', label: 'Gill Sans MT' },
+      { value: 'open-dyslexic', label: 'OpenDyslexic' }
+    ];
+    const fontDropdown = el('details', 'sm-client-background-picker sm-client-font-picker');
+    const fontTrigger = el('summary', 'sm-client-background-trigger');
+    const fontLabel = el('span', 'sm-client-background-current');
+    fontTrigger.appendChild(fontLabel);
+    const fontOptions = el('div', 'sm-client-background-options');
+    fontOptions.setAttribute('role', 'listbox');
+    fontDropdown.append(fontTrigger, fontOptions);
+
+    function renderWelcomeFontOptions() {
+      const selected = fontChoices.find(choice => choice.value === selectedFont) ||
+        fontChoices[0];
+      fontLabel.textContent = selected.label;
+      fontTrigger.setAttribute('aria-label', 'Menu font: ' + selected.label);
+      fontOptions.replaceChildren();
+      fontChoices.forEach(choice => {
+        const isSelected = choice.value === selectedFont;
+        const button = el('button', 'sm-client-background-option', {
+          type: 'button',
+          textContent: choice.label
+        });
+        button.setAttribute('role', 'option');
+        button.setAttribute('aria-selected', String(isSelected));
+        button.addEventListener('click', () => {
+          selectedFont = choice.value;
+          fontDropdown.open = false;
+          fontTrigger.focus();
+          renderWelcomeFontOptions();
+          onFontChange?.(choice.value);
+        });
+        fontOptions.appendChild(button);
+      });
+    }
+    renderWelcomeFontOptions();
+    fontRow.append(fontDetails, fontDropdown);
 
     const steps = el('div', 'sm-changelog-start-list');
     [
@@ -97,6 +155,7 @@
       row.append(details, button);
       steps.appendChild(row);
     });
+    steps.prepend(fontRow);
 
     const welcomeFooter = el('div', 'sm-changelog-welcome-footer');
     welcomeFooter.append(
@@ -244,6 +303,13 @@
       }
     }
 
+    function setFont(font) {
+      if (['kanit', 'gill-sans-mt', 'open-dyslexic'].includes(font)) {
+        selectedFont = font;
+        renderWelcomeFontOptions();
+      }
+    }
+
     setWelcomeVisible(!welcomeDismissed);
     window.addEventListener('hydrogen-hotkey-change', updateHotkey);
 
@@ -255,6 +321,6 @@
       item: { tab: 'changelog', selector: '#tab-changelog' }
     });
 
-    return { root, setWelcomeVisible, updateHotkey };
+    return { root, setWelcomeVisible, updateHotkey, setFont };
   };
 })();

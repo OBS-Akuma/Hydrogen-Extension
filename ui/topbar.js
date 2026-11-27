@@ -58,6 +58,7 @@
     const right = el('div', 'sm-topbar-right');
     right.dataset.searchSlot = '1';
 
+    const updateSlot = el('div', 'sm-topbar-update-slot');
     const closeActions = el('div', 'sm-close-actions');
     const fullscreen = el('button', 'sm-icon-btn sm-fullscreen', {
       type: 'button',
@@ -76,7 +77,7 @@
     close.addEventListener('click', onClose);
     close.setAttribute('aria-label', 'Close Hydrogen menu');
     closeActions.append(fullscreen, close);
-    right.appendChild(closeActions);
+    right.append(updateSlot, closeActions);
 
     bar.appendChild(right);
 

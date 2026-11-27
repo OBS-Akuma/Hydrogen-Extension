@@ -162,6 +162,12 @@
           style.surface_color_version === 1
         ) ||
         !(
+          style.font_family === undefined ||
+          ['kanit', 'gill-sans-mt', 'open-dyslexic'].includes(
+            style.font_family
+          )
+        ) ||
+        !(
           style.border_radius === undefined ||
           /^(?:0|[1-9]|1[0-9]|20)$/.test(String(style.border_radius))
         ) ||
@@ -317,6 +323,16 @@
             textContent: formatValue(value)
           });
           label.dataset.value = String(value);
+          const position = (
+            (Number(value) - Number(input.min)) /
+            (Number(input.max) - Number(input.min))
+          ) * 100;
+          label.style.left = position + '%';
+          label.style.transform = position === 0
+            ? 'translateX(0)'
+            : position === 100
+              ? 'translateX(-100%)'
+              : 'translateX(-50%)';
           labels.appendChild(label);
           return label;
         });
@@ -564,6 +580,64 @@
         }),
         borderRadiusControl.root
       );
+
+      const fontRow = el('div', 'sm-client-appearance-row sm-client-font-row');
+      fontRow.appendChild(el('span', 'sm-client-appearance-label', {
+        textContent: 'Menu Font'
+      }));
+      let fontFamily = ['kanit', 'gill-sans-mt', 'open-dyslexic'].includes(
+        styleSettings.font_family
+      ) ? styleSettings.font_family : 'kanit';
+      const fontDropdown = el('details', 'sm-client-background-picker sm-client-font-picker');
+      const fontTrigger = el('summary', 'sm-client-background-trigger');
+      const fontLabel = el('span', 'sm-client-background-current');
+      fontTrigger.appendChild(fontLabel);
+      const fontOptions = el('div', 'sm-client-background-options');
+      fontOptions.setAttribute('role', 'listbox');
+      fontDropdown.append(fontTrigger, fontOptions);
+      fontTrigger.setAttribute('aria-label', 'Menu font');
+
+      const fontChoices = [
+        { value: 'kanit', label: 'Kanit' },
+        { value: 'gill-sans-mt', label: 'Gill Sans MT' },
+        { value: 'open-dyslexic', label: 'OpenDyslexic' }
+      ];
+
+      function renderFontOptions() {
+        const selected = fontChoices.find(choice => choice.value === fontFamily) ||
+          fontChoices[0];
+        fontLabel.textContent = selected.label;
+        fontTrigger.setAttribute('aria-label', 'Menu font: ' + selected.label);
+        fontOptions.replaceChildren();
+        fontChoices.forEach(choice => {
+          const isSelected = choice.value === fontFamily;
+          const button = el('button', 'sm-client-background-option', {
+            type: 'button',
+            textContent: choice.label
+          });
+          button.setAttribute('role', 'option');
+          button.setAttribute('aria-selected', String(isSelected));
+          button.addEventListener('click', () => {
+            fontFamily = choice.value;
+            fontDropdown.open = false;
+            fontTrigger.focus();
+            renderFontOptions();
+            previewAppearance();
+            saveAppearance();
+          });
+          fontOptions.appendChild(button);
+        });
+      }
+
+      window.addEventListener('hydrogen-font-change', event => {
+        const font = event.detail?.font;
+        if (['kanit', 'gill-sans-mt', 'open-dyslexic'].includes(font)) {
+          fontFamily = font;
+          renderFontOptions();
+        }
+      });
+      renderFontOptions();
+      fontRow.appendChild(fontDropdown);
 
       const accentRow = el('div', 'sm-client-appearance-row sm-accent-row');
       accentRow.appendChild(el('span', 'sm-client-appearance-label', {
@@ -831,6 +905,7 @@
         menuHeightRow,
         cardOpacityRow,
         borderRadiusRow,
+        fontRow,
         accentRow,
         surfaceRow,
         sidebarLabelsRow,
@@ -843,6 +918,10 @@
         menuHeightInput.value = styleSettings.menu_height;
         cardOpacityInput.value = styleSettings.card_opacity;
         borderRadiusInput.value = styleSettings.border_radius;
+        fontFamily = ['kanit', 'gill-sans-mt', 'open-dyslexic'].includes(
+          styleSettings.font_family
+        ) ? styleSettings.font_family : 'kanit';
+        renderFontOptions();
         accentColor = styleSettings.accent_color;
         surfaceColor = styleSettings.surface_color;
         customAccentColors.splice(
@@ -912,7 +991,8 @@
           surface_color: surfaceColor,
           custom_surface_colors: [...customSurfaceColors],
           border_radius: borderRadiusInput.value,
-          sidebar_labels: sidebarLabels
+          sidebar_labels: sidebarLabels,
+          font_family: fontFamily
         };
       }
 
@@ -1377,7 +1457,8 @@
             custom_surface_colors: [],
             surface_color_version: 1,
             border_radius: '16',
-            sidebar_labels: true
+            sidebar_labels: true,
+            font_family: 'kanit'
           })) {
             throw new Error('Could not reset the Style tab settings.');
           }
