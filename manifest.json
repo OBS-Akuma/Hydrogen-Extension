@@ -27,7 +27,8 @@
 
   "host_permissions": [
     "https://raw.githubusercontent.com/*",
-    "https://api.github.com/*"
+    "https://api.github.com/*",
+    "https://cdnjs.cloudflare.com/*"
   ],
 
   "web_accessible_resources": [
@@ -49,6 +50,7 @@
         "Backgrounds/Juice.webp",
         "Fonts/Kanit-Regular.ttf",
         "Fonts/OpenDyslexic-Regular.ttf",
+        "Fonts/fa-solid-900.woff2",
         "json/CardInfo.json"
       ],
       "matches": [

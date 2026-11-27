@@ -21,6 +21,31 @@
   font-display: swap;
 }
 
+/* Font Awesome Free 6.7.2; icons licensed CC BY 4.0, font SIL OFL 1.1. */
+@font-face {
+  font-family: "Font Awesome 6 Free";
+  src:
+    url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/webfonts/fa-solid-900.woff2") format("woff2"),
+    url("chrome-extension://__MSG_@@extension_id__/Fonts/fa-solid-900.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 900;
+  font-display: block;
+}
+
+.fa-solid {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+}
+
+.fa-house::before { content: "\f015"; }
+.fa-pen-to-square::before { content: "\f044"; }
+.fa-heart::before { content: "\f004"; }
+.fa-paint-roller::before { content: "\f5aa"; }
+.fa-wand-magic-sparkles::before { content: "\e2ca"; }
+.fa-plug::before { content: "\f1e6"; }
+.fa-gear::before { content: "\f013"; }
+.fa-keyboard::before { content: "\f11c"; }
+
 .sm-root {
   --sm-bg0: #0a0a0a;
   --sm-bg-tint: rgba(10,10,10,0.35);
@@ -629,8 +654,12 @@
   width: 20px;
   height: 20px;
   flex: 0 0 20px;
-  fill: currentColor;
-  fill-rule: evenodd;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-style: normal;
+  line-height: 1;
 }
 
 .sm-nav-title {
