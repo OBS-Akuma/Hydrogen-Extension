@@ -235,6 +235,7 @@
         custom_surface_colors: currentSettings.custom_surface_colors,
         border_radius: currentSettings.border_radius,
         sidebar_labels: currentSettings.sidebar_labels,
+        sidebar_icons: currentSettings.sidebar_icons,
         font_family: currentSettings.font_family
       };
     }

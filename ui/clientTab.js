@@ -174,6 +174,10 @@
         !(
           style.sidebar_labels === undefined ||
           typeof style.sidebar_labels === 'boolean'
+        ) ||
+        !(
+          style.sidebar_icons === undefined ||
+          typeof style.sidebar_icons === 'boolean'
         )
       ) {
         throw new Error('The exported Style tab settings are invalid.');
@@ -296,6 +300,7 @@
       onBackgroundChange,
       onAppearanceChange,
       onSidebarLabelsChange,
+      onSidebarIconsChange,
       onRestoreWelcome
     } = {}) {
       const root = el('div', 'sm-tab-content');
@@ -509,11 +514,11 @@
           value: styleSettings.menu_height
         }
       );
-      menuHeightInput.setAttribute('aria-label', 'Menu height, default 660 pixels');
-      menuHeightInput.title = 'Default: 660px';
+      menuHeightInput.setAttribute('aria-label', 'Menu height, default 720 pixels');
+      menuHeightInput.title = 'Default: 720px';
       const menuHeightControl = createSliderLabels(
         menuHeightInput,
-        [400, 660, 1000],
+        [400, 720, 1000],
         value => value,
         'px'
       );
@@ -895,6 +900,90 @@
       updateSidebarLabelsToggle();
       sidebarLabelsRow.appendChild(sidebarLabelsToggle);
 
+      const sidebarIconsRow = el('div', 'sm-client-appearance-row');
+      sidebarIconsRow.appendChild(el('span', 'sm-client-appearance-label', {
+        textContent: 'Sidebar Icons'
+      }));
+      let sidebarIcons = styleSettings.sidebar_icons;
+      const sidebarIconsToggle = el(
+        'div',
+        'sm-plugin-toggle-control sm-client-sidebar-icon-toggle'
+      );
+      sidebarIconsToggle.setAttribute('role', 'group');
+      sidebarIconsToggle.setAttribute('aria-label', 'Sidebar Icons');
+      const sidebarIconsCheckbox = el('input', 'sm-plugin-checkbox', {
+        type: 'checkbox'
+      });
+      sidebarIconsCheckbox.setAttribute('aria-hidden', 'true');
+      sidebarIconsCheckbox.tabIndex = -1;
+      const sidebarIconsSegment = el('div', 'sm-plugin-seg');
+      const sidebarIconsPill = el('span', 'sm-plugin-seg-pill');
+      const disableSidebarIconsButton = el(
+        'button',
+        'sm-plugin-seg-btn sm-plugin-seg-off',
+        {
+          type: 'button',
+          textContent: 'Disabled'
+        }
+      );
+      const enableSidebarIconsButton = el(
+        'button',
+        'sm-plugin-seg-btn sm-plugin-seg-on',
+        {
+          type: 'button',
+          textContent: 'Enabled'
+        }
+      );
+      sidebarIconsSegment.append(
+        sidebarIconsPill,
+        disableSidebarIconsButton,
+        enableSidebarIconsButton
+      );
+      sidebarIconsToggle.append(sidebarIconsCheckbox, sidebarIconsSegment);
+
+      function updateSidebarIconsToggle() {
+        sidebarIconsCheckbox.checked = sidebarIcons;
+        disableSidebarIconsButton.classList.toggle(
+          'sm-selected',
+          !sidebarIcons
+        );
+        enableSidebarIconsButton.classList.toggle(
+          'sm-selected',
+          sidebarIcons
+        );
+        disableSidebarIconsButton.setAttribute(
+          'aria-pressed',
+          String(!sidebarIcons)
+        );
+        enableSidebarIconsButton.setAttribute(
+          'aria-pressed',
+          String(sidebarIcons)
+        );
+        onSidebarIconsChange?.(sidebarIcons);
+      }
+
+      function setSidebarIcons(enabled) {
+        if (sidebarIcons === enabled) return;
+
+        sidebarIconsSegment.classList.remove('sm-plugin-seg-go');
+        void sidebarIconsSegment.offsetWidth;
+        sidebarIconsSegment.classList.add('sm-plugin-seg-go');
+        sidebarIcons = enabled;
+        updateSidebarIconsToggle();
+        saveAppearance();
+      }
+
+      disableSidebarIconsButton.addEventListener(
+        'click',
+        () => setSidebarIcons(false)
+      );
+      enableSidebarIconsButton.addEventListener(
+        'click',
+        () => setSidebarIcons(true)
+      );
+      updateSidebarIconsToggle();
+      sidebarIconsRow.appendChild(sidebarIconsToggle);
+
       const appearanceStatus = el('div', 'sm-plugin-status');
       appearanceStatus.setAttribute('role', 'status');
       appearanceStatus.setAttribute('aria-live', 'polite');
@@ -909,6 +998,7 @@
         accentRow,
         surfaceRow,
         sidebarLabelsRow,
+        sidebarIconsRow,
         appearanceStatus
       );
 
@@ -943,9 +1033,11 @@
             ? surfaceColor
             : surfaceColors.default;
         sidebarLabels = styleSettings.sidebar_labels;
+        sidebarIcons = styleSettings.sidebar_icons;
         updateAccentSelection();
         updateSurfaceSelection();
         updateSidebarLabelsToggle();
+        updateSidebarIconsToggle();
         updateDefaultStopHighlights();
         [
           backgroundOpacityControl,
@@ -971,7 +1063,7 @@
         );
         menuHeightInput.classList.toggle(
           'sm-at-stop',
-          Number(menuHeightInput.value) === 660
+          Number(menuHeightInput.value) === 720
         );
         borderRadiusInput.classList.toggle(
           'sm-at-stop',
@@ -992,6 +1084,7 @@
           custom_surface_colors: [...customSurfaceColors],
           border_radius: borderRadiusInput.value,
           sidebar_labels: sidebarLabels,
+          sidebar_icons: sidebarIcons,
           font_family: fontFamily
         };
       }
@@ -1449,7 +1542,7 @@
             interface_opacity: '',
             background_opacity: '35',
             menu_width: '1000',
-            menu_height: '660',
+            menu_height: '720',
             card_opacity: '60',
             accent_color: 'blue',
             custom_accent_colors: [],
@@ -1458,6 +1551,7 @@
             surface_color_version: 1,
             border_radius: '16',
             sidebar_labels: true,
+            sidebar_icons: true,
             font_family: 'kanit'
           })) {
             throw new Error('Could not reset the Style tab settings.');

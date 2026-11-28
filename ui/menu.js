@@ -139,7 +139,7 @@
       const menuHeight = Number(settings.menu_height) >= 400 &&
         Number(settings.menu_height) <= 1000
         ? Number(settings.menu_height)
-        : 660;
+        : 720;
       const cardOpacity = Number(settings.card_opacity) >= 0 &&
         Number(settings.card_opacity) <= 100
         ? Number(settings.card_opacity)
@@ -283,29 +283,26 @@
     const searchSlot = topbar.querySelector('.sm-topbar-right');
     const closeActions = searchSlot.querySelector('.sm-close-actions');
 
+    function getSearchTarget(item) {
+      if (item instanceof Element) return item;
+
+      if (item && typeof item === 'object' && item.plugin) {
+        return document.querySelector(
+          '#tab-plugins [data-hydrogen-plugin="' + item.plugin + '"]'
+        );
+      }
+
+      if (item && typeof item === 'object' && item.selector) {
+        return document.querySelector(item.selector);
+      }
+
+      return null;
+    }
+
     const search = window.SM.buildSearch({
       isFavorited: hit => {
         const item = hit.item;
-        let target = null;
-
-        if (item instanceof Element) {
-          target = item;
-        } else if (
-          item &&
-          typeof item === 'object' &&
-          item.plugin
-        ) {
-          target = document.querySelector(
-            '#tab-plugins [data-hydrogen-plugin="' + item.plugin + '"]'
-          );
-        } else if (
-          item &&
-          typeof item === 'object' &&
-          item.selector
-        ) {
-          target = document.querySelector(item.selector);
-        }
-
+        const target = getSearchTarget(item);
         const card = target?.closest('.sm-card') ||
           target?.querySelector('.sm-card');
         const tab = card?.closest('.sm-tab-content');
@@ -314,35 +311,19 @@
       },
       onPick: (hit) => {
         const item = hit.item;
+        const target = getSearchTarget(item);
+        const targetTabId = target
+          ?.closest('.sm-tab-content')
+          ?.id.replace(/^tab-/, '');
 
         const tabId =
           item && typeof item === 'object' && item.tab
             ? item.tab
-            : hit.id;
+            : targetTabId || hit.id;
 
         switchTab(tabId);
 
         requestAnimationFrame(() => {
-          let target = null;
-
-          if (item instanceof Element) {
-            target = item;
-          } else if (
-            item &&
-            typeof item === 'object' &&
-            item.plugin
-          ) {
-            target = document.querySelector(
-              '#tab-plugins [data-hydrogen-plugin="' + item.plugin + '"]'
-            );
-          } else if (
-            item &&
-            typeof item === 'object' &&
-            item.selector
-          ) {
-            target = document.querySelector(item.selector);
-          }
-
           if (!target) return;
 
           if (target.tagName === 'DETAILS') {
@@ -378,6 +359,7 @@
     });
     const sidebar = sidebarControls.root;
     sidebarControls.setLabels(styleSettings.sidebar_labels);
+    sidebarControls.setIcons(styleSettings.sidebar_icons);
     sidebarControls.setTabLabel(
       'changelog',
       welcomeDismissed ? 'Changelog' : 'Home'
@@ -457,6 +439,7 @@
         changelogTab.setFont?.(settings.font_family);
       },
       onSidebarLabelsChange: sidebarControls.setLabels,
+      onSidebarIconsChange: sidebarControls.setIcons,
       onRestoreWelcome: () => {
         if (!saveWelcomeDismissed(false)) return false;
         changelogTab.setWelcomeVisible(true);

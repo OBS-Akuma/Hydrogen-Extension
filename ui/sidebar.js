@@ -260,6 +260,9 @@
         versionLabel.hidden = !enabled;
         versionTarget.hidden = enabled;
       },
+      setIcons(enabled) {
+        sidebar.classList.toggle('sm-sidebar-icons-hidden', !enabled);
+      },
       setTabLabel(tabId, label) {
         const button = tabButtons.get(tabId);
         const text = button?.querySelector('.sm-tab-label');
